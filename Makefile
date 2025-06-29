@@ -1,11 +1,12 @@
-CPPFLAGS = -MD
+LIBS = glfw3 gl
+CPPFLAGS = -MD -I inc $(shell pkg-config --cflags $(LIBS))
 CFLAGS =
-CXXFLAGS =
-LDFLAGS =
+CXXFLAGS = -std=c++23
+LDFLAGS = $(shell pkg-config --libs $(LIBS))
 
-CC = gcc
-CXX = g++
-LD = g++
+CC = gcc-14
+CXX = g++-14
+LD = g++-14
 RM = rm
 
 BIN = ./bin/main
@@ -14,7 +15,7 @@ SRC = $(shell find src -type f)
 OBJ = $(SRC:src/%=bin/%.o)
 DEP = $(OBJ:bin/%.o=bin/%.d)
 
--include $(DEP)
+all:: $(BIN)
 
 $(BIN): $(OBJ)
 	$(LD) -o $@ $^ $(LDFLAGS)
@@ -31,3 +32,4 @@ run:: $(BIN)
 clean::
 	$(RM) -r bin/*
 
+-include $(DEP)
