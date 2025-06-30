@@ -15,6 +15,7 @@ struct shader_pipeline
 {
 	GLuint id;
 
+	shader_pipeline() = default;
 	shader_pipeline(std::string_view vsrc, std::string_view fsrc);
 	void fini();
 

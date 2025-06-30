@@ -38,7 +38,7 @@ void texture::fini()
 	glDeleteTextures(1, &handle);
 }
 
-void texture::bind(GLenum unit)
+void texture::bind(GLuint unit) const
 {
 	glActiveTexture(GL_TEXTURE0 + unit);
 	glBindTexture(GL_TEXTURE_2D, handle);

@@ -22,10 +22,11 @@ struct texture
 	GLuint handle;
 	GLuint location;
 
+	texture() = default;
 	texture(image const &img, shader_pipeline const &shader, std::string_view name);
 	void fini();
 
-	void bind(GLenum unit);
+	void bind(GLuint unit) const;
 };
 
 
