@@ -1,7 +1,7 @@
 LIBS = glfw3 gl
-CPPFLAGS = -MD -I inc $(shell pkg-config --cflags $(LIBS))
+CPPFLAGS = -MD -I inc $(shell pkg-config --cflags $(LIBS)) -I inc/stb
 CFLAGS =
-CXXFLAGS = -std=c++23
+CXXFLAGS = -std=c++23 -ggdb3
 LDFLAGS = $(shell pkg-config --libs $(LIBS))
 
 CC = gcc-14
