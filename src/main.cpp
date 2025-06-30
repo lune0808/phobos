@@ -1,33 +1,15 @@
 #include "window.hpp"
 #include "shader.hpp"
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "texture.hpp"
 #include <print>
 
 
 int main()
 {
 	using namespace std::literals;
+	// TODO: use a NUL-terminated string type
 	window win{"Gaming\0"sv};
 	if (win.error()) return 1;
-
-	int width;
-	int height;
-	int channels;
-	stbi_set_flip_vertically_on_load(true);
-	auto pimg = stbi_load("res/basic.png", &width, &height, &channels, 0);
-	if (!pimg || channels != 4) return 1;
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	GLuint tex;
-	glGenTextures(1, &tex);
-	glBindTexture(GL_TEXTURE_2D, tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pimg);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	stbi_image_free(pimg);
 
 	shader_pipeline shader{
 		"#version 410 core\n"
@@ -48,6 +30,10 @@ int main()
 	};
 	if (!shader.ok()) return 1;
 	shader.bind();
+
+	image basic{"res/basic.png\0"sv};
+	texture tex{basic, shader, "unif_color\0"sv};
+	basic.fini();
 
 	float vdata[] = {
 		-0.5f, -0.5f, 0.0f, 0.0f,
@@ -71,9 +57,7 @@ int main()
 
 	while (win.live()) {
 		shader.bind();
-		glUniform1i(glGetUniformLocation(shader.id, "unif_color"), 0);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, tex);
+		tex.bind(0);
 		glBindVertexArray(glbufs[0]);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		win.draw();
