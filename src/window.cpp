@@ -47,5 +47,15 @@ void window::draw() const
 	glfwSwapBuffers(handle);
 	glfwPollEvents();
 	glClear(GL_COLOR_BUFFER_BIT);
+	const auto dims = this->dims();
+	glViewport(0, 0, dims.x, dims.y);
+}
+
+glm::ivec2 window::dims() const
+{
+	int width;
+	int height;
+	glfwGetFramebufferSize(handle, &width, &height);
+	return { width, height };
 }
 

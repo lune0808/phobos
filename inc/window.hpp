@@ -1,6 +1,7 @@
 #pragma once
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <string_view>
 
 
@@ -15,5 +16,6 @@ public:
 	bool error() const;
 	bool live() const;
 	void draw() const;
+	glm::ivec2 dims() const;
 };
 
