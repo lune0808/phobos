@@ -39,10 +39,10 @@ int main()
 		const auto enemy_gfx_state = rdr.access(enemy);
 		circle enemy_hitbox{ { enemy_gfx_state->transform[2][0], enemy_gfx_state->transform[2][1] },
 			enemy_gfx_state->transform[0][0]/2.0f };
-		const auto sin = std::sin(glfwGetTime());
-		const auto cos = std::cos(glfwGetTime());
-		const glm::vec2 u{ 0.4f * cos, 0.4f * sin };
-		const glm::vec2 v{-0.4f * sin, 0.4f * cos };
+		const auto t0 = glfwGetTime();
+		const auto t1 = t0 + 0.3f;
+		const glm::vec2 u{ 0.4f * std::cos(t0), 0.4f * std::sin(t0) };
+		const glm::vec2 v{ 0.4f * std::cos(t1), 0.4f * std::sin(t1) };
 		*cone_gfx_state = tri_transform({ cone_gfx_state->transform[2][0], cone_gfx_state->transform[2][1] }, u, v);
 		triangle cone_hitbox{ { cone_gfx_state->transform[2][0], cone_gfx_state->transform[2][1] }, u, v };
 		const auto colliding = collision_test(enemy_hitbox, cone_hitbox);

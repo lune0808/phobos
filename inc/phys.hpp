@@ -23,7 +23,7 @@ struct triangle
 struct ray_circle_intersection
 {
 	float time;
-	bool has_interesection;
+	bool has_intersection;
 };
 
 ray_circle_intersection collision_test(circle const &c, ray const &r);

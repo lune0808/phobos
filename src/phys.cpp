@@ -11,20 +11,20 @@ ray_circle_intersection collision_test(circle const &c, ray const &r)
 	const auto delta_over_4 = dot * dot - swept2 * (diff2 - c.radius * c.radius);
 	ray_circle_intersection result;
 	if (delta_over_4 < 0) {
-		result.has_interesection = false;
+		result.has_intersection = false;
 		return result;
 	}
 	const auto root = std::sqrt(delta_over_4);
 	const auto time_lo = (-dot - root) / swept2;
 	const auto time_hi = (-dot + root) / swept2;
 	if (time_hi < 0.0f) {
-		result.has_interesection = false;
+		result.has_intersection = false;
 		return result;
 	} else if (time_lo > 1.0f) {
-		result.has_interesection = false;
+		result.has_intersection = false;
 		return result;
 	}
-	result.has_interesection = true;
+	result.has_intersection = true;
 	if (time_hi <= 1.0f) {
 		result.time = time_hi;
 		return result;
@@ -44,11 +44,11 @@ bool collision_test(circle const &c, triangle const &t)
 	const auto side3 = side2-side1; // glm::dot(t.v-t.u, rebased)
 	if (side1 == side2 && side2 == side3)
 		return true;
-	if (collision_test(c, ray{ t.origin, t.u }).has_interesection)
+	if (collision_test(c, ray{ t.origin, t.u }).has_intersection)
 		return true;
-	if (collision_test(c, ray{ t.origin+t.u, t.v-t.u }).has_interesection)
+	if (collision_test(c, ray{ t.origin, t.v }).has_intersection)
 		return true;
-	if (collision_test(c, ray{ t.origin+t.v, -t.v }).has_interesection)
+	if (collision_test(c, ray{ t.origin+t.u, t.v-t.u }).has_intersection)
 		return true;
 	return false;
 }
