@@ -1,5 +1,6 @@
 #include "window.hpp"
 #include "render.hpp"
+#include "phys.hpp"
 #include <glm/glm.hpp>
 #include <string_view>
 
@@ -29,17 +30,23 @@ int main()
 	window win{"Gaming\0"sv};
 	if (win.error()) return 1;
 	render rdr{};
-	auto player = rdr.spawn(render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
-	auto enemy  = rdr.spawn(render::object::enemy , quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
-	auto cone = rdr.spawn(render::object::attack_cone, tri_transform({ 0.3f,-0.1f}, {0.4f,0.1f}, {-0.1f,0.4f}));
+	const auto player = rdr.spawn(render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
+	const auto enemy  = rdr.spawn(render::object::enemy , quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
+	const auto cone = rdr.spawn(render::object::attack_cone, tri_transform({ 0.3f,-0.1f}, {0.4f,0.1f}, {-0.1f,0.4f}));
 
-	size_t frame = 0;
 	while (win.live()) {
-		++frame;
-		if (frame % 144 == 0) {
-			auto cone_gfx_state = rdr.access(cone);
-			cone_gfx_state->flags().colliding ^= 1;
-		}
+		const auto cone_gfx_state = rdr.access(cone);
+		const auto enemy_gfx_state = rdr.access(enemy);
+		circle enemy_hitbox{ { enemy_gfx_state->transform[2][0], enemy_gfx_state->transform[2][1] },
+			enemy_gfx_state->transform[0][0]/2.0f };
+		const auto sin = std::sin(glfwGetTime());
+		const auto cos = std::cos(glfwGetTime());
+		const glm::vec2 u{ 0.4f * cos, 0.4f * sin };
+		const glm::vec2 v{-0.4f * sin, 0.4f * cos };
+		*cone_gfx_state = tri_transform({ cone_gfx_state->transform[2][0], cone_gfx_state->transform[2][1] }, u, v);
+		triangle cone_hitbox{ { cone_gfx_state->transform[2][0], cone_gfx_state->transform[2][1] }, u, v };
+		const auto colliding = collision_test(enemy_hitbox, cone_hitbox);
+		cone_gfx_state->flags().colliding = colliding;
 		rdr.draw(win);
 		win.draw();
 	}
