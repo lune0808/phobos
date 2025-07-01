@@ -28,8 +28,8 @@ private:
 	{
 		float x;
 		float y;
-		float w;
-		float h;
+		float r;
+		bool colliding: 1;
 	};
 
 	struct per_draw

@@ -44,8 +44,13 @@ render::render()
 		"in vec2 vert_uv;\n"
 		"out vec4 frag_color;\n"
 		"uniform sampler2D unif_color;\n"
+		"uniform float unif_red_shift;\n"
 		"void main() {\n"
-			"frag_color = texture(unif_color, vert_uv);\n"
+			"vec4 color = 1.0 * texture(unif_color, vert_uv);\n"
+			"color.r += unif_red_shift;\n"
+			"color.g -= unif_red_shift;\n"
+			"color.b -= unif_red_shift;\n"
+			"frag_color = color;\n"
 		"}\n\0"sv,
 	};
 	glm::mat3 id(1.0f);
@@ -104,7 +109,7 @@ render::render()
 		float vdata[] = {
 			0.0f, 0.0f, 0.0f, 0.0f,
 			1.0f, 0.0f, 1.0f, 0.0f,
-			1.0f, 1.0f, 1.0f, 1.0f,
+			0.0f, 1.0f, 0.0f, 1.0f,
 		};
 		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
 		ctx[attack_cone] = per_draw{ va, shader, tex, 3 };
@@ -163,11 +168,13 @@ void render::draw(window const &to)
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
 		for (const auto &[e, this_entity]: data[obj]) {
 			const glm::mat3 model = {
-				{ this_entity.w, 0.0f         , 0.0f },
-				{ 0.0f         , this_entity.h, 0.0f },
+				{ this_entity.r, 0.0f         , 0.0f },
+				{ 0.0f         , this_entity.r, 0.0f },
 				{ this_entity.x, this_entity.y, 1.0f },
 			};
 			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(model));
+			const auto red_shift = this_entity.colliding? 0.3f: 0.0f;
+			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		}
 	}
