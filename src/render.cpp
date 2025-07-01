@@ -6,6 +6,23 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
+static GLuint describe_layout_f2f2(void *data, size_t size)
+{
+	GLuint va;
+	glGenVertexArrays(1, &va);
+	glBindVertexArray(va);
+	GLuint vb;
+	glGenBuffers(1, &vb);
+	glBindBuffer(GL_ARRAY_BUFFER, vb);
+	glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(0*sizeof(float)));
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glBindVertexArray(0);
+	return va;
+}
+
 render::render()
 	: ok(0), nexte(1)
 {
@@ -51,20 +68,8 @@ render::render()
 			-0.5f, +0.5f, 0.0f, 1.0f,
 			-0.5f, -0.5f, 0.0f, 0.0f,
 		};
-		GLuint va;
-		glGenVertexArrays(1, &va);
-		glBindVertexArray(va);
-		GLuint vb;
-		glGenBuffers(1, &vb);
-		glBindBuffer(GL_ARRAY_BUFFER, vb);
-		glBufferData(GL_ARRAY_BUFFER, sizeof vdata, vdata, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), nullptr);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
-		glEnableVertexAttribArray(1);
-		glBindVertexArray(0);
-
-		ctx[player] = per_draw{ va, shader, tex };
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
+		ctx[player] = per_draw{ va, shader, tex, 6 };
 		++ok;
 	}
 
@@ -82,20 +87,27 @@ render::render()
 			-0.5f, +0.5f, 0.0f, 1.0f,
 			-0.5f, -0.5f, 0.0f, 0.0f,
 		};
-		GLuint va;
-		glGenVertexArrays(1, &va);
-		glBindVertexArray(va);
-		GLuint vb;
-		glGenBuffers(1, &vb);
-		glBindBuffer(GL_ARRAY_BUFFER, vb);
-		glBufferData(GL_ARRAY_BUFFER, sizeof vdata, vdata, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), nullptr);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
-		glEnableVertexAttribArray(1);
-		glBindVertexArray(0);
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
+		ctx[enemy] = per_draw{ va, shader, tex, 6 };
+		++ok;
+	}
 
-		ctx[enemy] = per_draw{ va, shader, tex };
+	{
+		unsigned char fill[4] = { 0xf2, 0xde, 0xe3, 0x56 };
+		image img;
+		img.base = fill;
+		img.width = 1;
+		img.height = 1;
+		img.channels = 4;
+		texture tex{img, shader, "unif_color\0"sv};
+
+		float vdata[] = {
+			0.0f, 0.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 1.0f, 0.0f,
+			1.0f, 1.0f, 1.0f, 1.0f,
+		};
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
+		ctx[attack_cone] = per_draw{ va, shader, tex, 3 };
 		++ok;
 	}
 
@@ -118,22 +130,24 @@ render::~render()
 render::entity render::spawn(object type, per_entity settings)
 {
 	const auto e = nexte++ << ENT_SHIFT | type;
-	const auto [addr, inserted] = data.emplace(e, settings);
+	const auto [addr, inserted] = data[type].emplace(e, settings);
 	assert(inserted);
 	return e;
 }
 
 void render::despawn(entity e)
 {
-	auto addr = data.find(e);
-	assert(addr != data.end());
-	data.erase(addr);
+
+	const auto type = e & ENT_MASK;
+	auto addr = data[type].find(e);
+	assert(addr != data[type].end());
+	data[type].erase(addr);
 }
 
 render::per_entity *render::access(entity e)
 {
-	auto addr = data.find(e);
-	assert(addr != data.end());
+	auto addr = data[e & ENT_MASK].find(e);
+	assert(addr != data[e & ENT_MASK].end());
 	return &addr->second;
 }
 
@@ -141,19 +155,20 @@ void render::draw(window const &to)
 {
 	const auto dims = to.dims();
 	const glm::mat3 view = { { 1.0f, 0.0f, 0.0f }, { 0.0f, float(dims.x) / float(dims.y), 0.0f }, { 0.0f, 0.0f, 1.0f } };
-	for (const auto &[e, this_entity]: data) {
-		const auto obj = e & (1<<ENT_SHIFT)-1;
+	for (size_t obj = 0; obj < NUM; ++obj) {
 		const auto &this_draw = ctx[obj];
 		this_draw.shader.bind();
 		this_draw.tex.bind(0);
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
-		const glm::mat3 model = {
-			{ this_entity.w, 0.0f         , 0.0f },
-			{ 0.0f         , this_entity.h, 0.0f },
-			{ this_entity.x, this_entity.y, 1.0f },
-		};
-		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		for (const auto &[e, this_entity]: data[obj]) {
+			const glm::mat3 model = {
+				{ this_entity.w, 0.0f         , 0.0f },
+				{ 0.0f         , this_entity.h, 0.0f },
+				{ this_entity.x, this_entity.y, 1.0f },
+			};
+			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(model));
+			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
+		}
 	}
 }

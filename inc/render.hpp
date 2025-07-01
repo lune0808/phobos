@@ -13,11 +13,13 @@ public:
 	enum object {
 		player,
 		enemy,
+		attack_cone,
 		NUM
 	};
 
 private:
 	enum { ENT_SHIFT = 2 };
+	enum { ENT_MASK = (1<<ENT_SHIFT)-1 };
 	static_assert(NUM < (1<<ENT_SHIFT), "increase shift amount");
 
 	using entity = std::uint32_t;
@@ -35,10 +37,11 @@ private:
 		GLuint va;
 		shader_pipeline shader;
 		texture tex;
+		GLuint tricount;
 	};
 
 	per_draw ctx[NUM];
-	std::unordered_map<entity, per_entity> data;
+	std::unordered_map<entity, per_entity> data[NUM];
 	size_t ok;
 	entity nexte;
 

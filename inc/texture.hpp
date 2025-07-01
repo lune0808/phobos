@@ -11,6 +11,7 @@ struct image
 	int height;
 	int channels;
 
+	image() = default;
 	image(std::string_view path);
 	void fini();
 
