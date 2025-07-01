@@ -9,39 +9,39 @@
 render::render()
 	: ok(0), nexte(1)
 {
+	using namespace std::literals;
+	shader_pipeline shader{
+		"#version 410 core\n"
+		"layout(location=0) in vec2 attr_pos;\n"
+		"layout(location=1) in vec2 attr_uv;\n"
+		"out vec2 vert_uv;\n"
+		"uniform mat3 unif_view;\n"
+		"uniform mat3 unif_model;\n"
+		"void main() {\n"
+			"vert_uv = attr_uv;\n"
+			"vec3 pos = unif_view * unif_model * vec3(attr_pos, 1.0);\n"
+			"gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
+		"}\n\0"sv,
+
+		"#version 410 core\n"
+		"in vec2 vert_uv;\n"
+		"out vec4 frag_color;\n"
+		"uniform sampler2D unif_color;\n"
+		"void main() {\n"
+			"frag_color = texture(unif_color, vert_uv);\n"
+		"}\n\0"sv,
+	};
+	glm::mat3 id(1.0f);
+	if (!shader.ok()) goto fail;
+	shader.bind();
+	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(id));
+	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
+
 	{
-		using namespace std::literals;
-		shader_pipeline shader{
-			"#version 410 core\n"
-			"layout(location=0) in vec2 attr_pos;\n"
-			"layout(location=1) in vec2 attr_uv;\n"
-			"out vec2 vert_uv;\n"
-			"uniform mat3 unif_view;\n"
-			"uniform mat3 unif_model;\n"
-			"void main() {\n"
-				"vert_uv = attr_uv;\n"
-				"vec3 pos = unif_view * unif_model * vec3(attr_pos, 1.0);\n"
-				"gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
-			"}\n\0"sv,
-
-			"#version 410 core\n"
-			"in vec2 vert_uv;\n"
-			"out vec4 frag_color;\n"
-			"uniform sampler2D unif_color;\n"
-			"void main() {\n"
-				"frag_color = texture(unif_color, vert_uv);\n"
-			"}\n\0"sv,
-		};
-		if (!shader.ok()) goto fail;
-		shader.bind();
-		glm::mat3 id(1.0f);
-		glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(id));
-		glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
-
-		image basic{"res/basic.png\0"sv};
-		if (!basic.ok()) goto fail;
-		texture tex{basic, shader, "unif_color\0"sv};
-		basic.fini();
+		image img{"res/basic.png\0"sv};
+		if (!img.ok()) goto fail;
+		texture tex{img, shader, "unif_color\0"sv};
+		img.fini();
 
 		float vdata[] = {
 			-0.5f, -0.5f, 0.0f, 0.0f,
@@ -69,34 +69,6 @@ render::render()
 	}
 
 	{
-		using namespace std::literals;
-		shader_pipeline shader{
-			"#version 410 core\n"
-			"layout(location=0) in vec2 attr_pos;\n"
-			"layout(location=1) in vec2 attr_uv;\n"
-			"out vec2 vert_uv;\n"
-			"uniform mat3 unif_view;\n"
-			"uniform mat3 unif_model;\n"
-			"void main() {\n"
-				"vert_uv = attr_uv;\n"
-				"vec3 pos = unif_view * unif_model * vec3(attr_pos, 1.0);\n"
-				"gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
-			"}\n\0"sv,
-
-			"#version 410 core\n"
-			"in vec2 vert_uv;\n"
-			"out vec4 frag_color;\n"
-			"uniform sampler2D unif_color;\n"
-			"void main() {\n"
-				"frag_color = texture(unif_color, vert_uv);\n"
-			"}\n\0"sv,
-		};
-		if (!shader.ok()) goto fail;
-		shader.bind();
-		glm::mat3 id(1.0f);
-		glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(id));
-		glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
-
 		image img{"res/enemy.png\0"sv};
 		if (!img.ok()) goto fail;
 		texture tex{img, shader, "unif_color\0"sv};
