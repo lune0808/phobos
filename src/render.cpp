@@ -132,7 +132,7 @@ render::~render()
 	}
 }
 
-render::entity render::spawn(object type, per_entity settings)
+render::entity render::spawn(object type, per_entity const &settings)
 {
 	const auto e = nexte++ << ENT_SHIFT | type;
 	const auto [addr, inserted] = data[type].emplace(e, settings);
@@ -166,16 +166,25 @@ void render::draw(window const &to)
 		this_draw.tex.bind(0);
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
-		for (const auto &[e, this_entity]: data[obj]) {
-			const glm::mat3 model = {
-				{ this_entity.r, 0.0f         , 0.0f },
-				{ 0.0f         , this_entity.r, 0.0f },
-				{ this_entity.x, this_entity.y, 1.0f },
-			};
-			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(model));
-			const auto red_shift = this_entity.colliding? 0.3f: 0.0f;
+		for (auto &[e, this_entity]: data[obj]) {
+			const auto flags = this_entity.flags();
+			this_entity.flags() = per_entity::flags_t{};
+			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
+					1, GL_FALSE, glm::value_ptr(this_entity.transform));
+			this_entity.flags() = flags;
+			const auto red_shift = flags.colliding? 0.3f: 0.0f;
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		}
 	}
+}
+
+const render::per_entity::flags_t &render::per_entity::flags() const
+{
+	return *reinterpret_cast<const flags_t*>(&transform[0][2]);
+}
+
+render::per_entity::flags_t &render::per_entity::flags()
+{
+	return *reinterpret_cast<flags_t*>(&transform[0][2]);
 }

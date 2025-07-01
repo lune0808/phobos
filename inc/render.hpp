@@ -17,7 +17,6 @@ public:
 		NUM
 	};
 
-private:
 	enum { ENT_SHIFT = 2 };
 	enum { ENT_MASK = (1<<ENT_SHIFT)-1 };
 	static_assert(NUM < (1<<ENT_SHIFT), "increase shift amount");
@@ -26,12 +25,17 @@ private:
 
 	struct per_entity
 	{
-		float x;
-		float y;
-		float r;
-		bool colliding: 1;
+		glm::mat3 transform;
+
+		struct flags_t {
+			std::uint32_t colliding: 1;
+		};
+
+		const flags_t &flags() const;
+		flags_t &flags();
 	};
 
+private:
 	struct per_draw
 	{
 		GLuint va;
@@ -49,7 +53,7 @@ public:
 	render();
 	~render();
 
-	entity spawn(object type, per_entity settings);
+	entity spawn(object type, per_entity const &settings);
 	void despawn(entity e);
 	per_entity *access(entity e);
 
