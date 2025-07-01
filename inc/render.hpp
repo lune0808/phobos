@@ -12,6 +12,7 @@ class render
 public:
 	enum object {
 		player,
+		enemy,
 		NUM
 	};
 
