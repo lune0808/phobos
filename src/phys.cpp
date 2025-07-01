@@ -41,8 +41,8 @@ bool collision_test(circle const &c, triangle const &t)
 		return true;
 	const auto side1 = glm::dot(t.u, rebased);
 	const auto side2 = glm::dot(t.v, rebased);
-	const auto side3 = side2-side1; // glm::dot(t.v-t.u, rebased)
-	if (side1 == side2 && side2 == side3)
+	const auto side3 = glm::dot(t.v-t.u, c.origin - (t.origin+t.u));
+	if (side1 > 0.0f && side2 < 0.0f && side3 > 0.0f)
 		return true;
 	if (collision_test(c, ray{ t.origin, t.u }).has_intersection)
 		return true;
