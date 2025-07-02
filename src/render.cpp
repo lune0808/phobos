@@ -147,13 +147,13 @@ void render::despawn(entity e)
 	auto addr = data[type].find(e);
 	assert(addr != data[type].end());
 	data[type].erase(addr);
+	despawning.push_back(e);
 }
 
 render::per_entity *render::access(entity e)
 {
 	auto addr = data[e & ENT_MASK].find(e);
-	assert(addr != data[e & ENT_MASK].end());
-	return &addr->second;
+	return addr != data[e & ENT_MASK].end()? &addr->second: nullptr;
 }
 
 void render::draw(window const &to)
@@ -177,6 +177,7 @@ void render::draw(window const &to)
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		}
 	}
+	despawning.clear();
 }
 
 const render::per_entity::flags_t &render::per_entity::flags() const

@@ -50,6 +50,8 @@ private:
 	entity nexte;
 
 public:
+	std::vector<entity> despawning;
+
 	render();
 	~render();
 
