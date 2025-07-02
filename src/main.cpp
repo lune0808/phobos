@@ -11,18 +11,18 @@
 render::per_entity quad_transform(glm::vec2 origin, glm::vec2 dims)
 {
 	return {{{
-		{ dims.x  , 0.0f    , 0.0f },
-		{ 0.0f    , dims.y  , 0.0f },
-		{ origin.x, origin.y, 1.0f },
+		{ dims.x  , 0.0f     },
+		{ 0.0f    , dims.y   },
+		{ origin.x, origin.y },
 	}}};
 }
 
 render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 {
 	return {{{
-		{ u.x     , u.y     , 0.0f },
-		{ v.x     , v.y     , 0.0f },
-		{ origin.x, origin.y, 1.0f },
+		{ u.x     , u.y      },
+		{ v.x     , v.y      },
+		{ origin.x, origin.y },
 	}}};
 }
 

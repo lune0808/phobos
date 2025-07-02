@@ -172,20 +172,18 @@ void render::draw()
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
 		for (auto &[e, this_entity]: data[obj]) {
-			const auto flags = this_entity.flags();
-			this_entity.flags() = per_entity::flags_t{};
+			const glm::mat3 model{
+				glm::vec3{this_entity.  x(), 0.0f},
+				glm::vec3{this_entity.  y(), 0.0f},
+				glm::vec3{this_entity.pos(), 1.0f},
+			};
 			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
-					1, GL_FALSE, glm::value_ptr(this_entity.repr));
-			this_entity.flags() = flags;
-			const auto red_shift = flags.colliding? 0.3f: 0.0f;
+					1, GL_FALSE, glm::value_ptr(model));
+			const auto red_shift = colliding.contains(e)? 0.3f: 0.0f;
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		}
 	}
 	despawning.clear();
-}
-
-render::per_entity::flags_t &render::per_entity::flags()
-{
-	return *reinterpret_cast<flags_t*>(&transform2d::flags());
+	colliding.clear();
 }

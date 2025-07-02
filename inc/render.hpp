@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
 #include <glad/gl.h>
 #include "shader.hpp"
 #include "texture.hpp"
@@ -24,14 +25,7 @@ public:
 
 	using entity = std::uint32_t;
 
-	struct per_entity : transform2d
-	{
-		struct flags_t {
-			std::uint32_t colliding: 1;
-		};
-
-		flags_t &flags();
-	};
+	struct per_entity : transform2d {};
 
 private:
 	struct per_draw
@@ -49,6 +43,7 @@ private:
 
 public:
 	std::vector<entity> despawning;
+	std::unordered_set<entity> colliding;
 	struct {
 		glm::vec2 pos;
 		glm::vec2 dim;

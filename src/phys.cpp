@@ -68,8 +68,3 @@ glm::vec2 &transform2d::y()
 	return *reinterpret_cast<glm::vec2*>(&repr[1]);
 }
 
-transform2d::flags_t &transform2d::flags()
-{
-	return *reinterpret_cast<flags_t*>(&repr[0][2]);
-}
-

@@ -44,7 +44,6 @@ void tick::update(float dt)
 		const auto dir = glm::normalize(delta);
 		const auto speed = 0.03f;
 		cur->pos() += dt * speed * dir;
-		cur->flags().colliding = false;
 	}
 	for (auto &[e, data] : colliding_) {
 		const auto cur = rdr.access(e);
@@ -52,7 +51,9 @@ void tick::update(float dt)
 		const circle tgt_hitbox{ tgt->pos(), tgt->x().x / 2.0f };
 		const triangle cur_hitbox{ cur->pos(), cur->x(), cur->y() };
 		const auto colliding = collision_test(tgt_hitbox, cur_hitbox);
-		cur->flags().colliding = colliding;
-		tgt->flags().colliding = colliding;
+		if (!colliding)
+			continue;
+		rdr.colliding.emplace(e);
+		rdr.colliding.emplace(data.target);
 	}
 }

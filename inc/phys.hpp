@@ -32,13 +32,10 @@ bool collision_test(circle const &c, triangle const &t);
 
 struct transform2d
 {
-	glm::mat3 repr;
+	glm::mat3x2 repr;
 
 	glm::vec2 &pos();
 	glm::vec2 &x();
 	glm::vec2 &y();
-
-	using flags_t = std::uint32_t;
-	flags_t &flags();
 };
 
