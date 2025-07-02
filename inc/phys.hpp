@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <cstdint>
 
 struct circle
 {
@@ -28,4 +29,16 @@ struct ray_circle_intersection
 
 ray_circle_intersection collision_test(circle const &c, ray const &r);
 bool collision_test(circle const &c, triangle const &t);
+
+struct transform2d
+{
+	glm::mat3 repr;
+
+	glm::vec2 &pos();
+	glm::vec2 &x();
+	glm::vec2 &y();
+
+	using flags_t = std::uint32_t;
+	flags_t &flags();
+};
 

@@ -175,7 +175,7 @@ void render::draw()
 			const auto flags = this_entity.flags();
 			this_entity.flags() = per_entity::flags_t{};
 			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
-					1, GL_FALSE, glm::value_ptr(this_entity.transform));
+					1, GL_FALSE, glm::value_ptr(this_entity.repr));
 			this_entity.flags() = flags;
 			const auto red_shift = flags.colliding? 0.3f: 0.0f;
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
@@ -185,12 +185,7 @@ void render::draw()
 	despawning.clear();
 }
 
-const render::per_entity::flags_t &render::per_entity::flags() const
-{
-	return *reinterpret_cast<const flags_t*>(&transform[0][2]);
-}
-
 render::per_entity::flags_t &render::per_entity::flags()
 {
-	return *reinterpret_cast<flags_t*>(&transform[0][2]);
+	return *reinterpret_cast<flags_t*>(&transform2d::flags());
 }

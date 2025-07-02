@@ -36,31 +36,23 @@ void tick::update(float dt)
 		colliding_.erase(e);
 	}
 	for (auto &[e, data] : following_) {
-		const auto pos = rdr.access(e);
+		const auto cur = rdr.access(e);
 		const auto tgt = rdr.access(data.target);
-		const auto delta = tgt->transform[2] - pos->transform[2];
+		const auto delta = tgt->pos() - cur->pos();
 		if (glm::length2(delta) < 1e-3)
 			continue;
-		const auto dir = glm::normalize(glm::vec2(delta.x, delta.y));
+		const auto dir = glm::normalize(delta);
 		const auto speed = 0.03f;
-		pos->transform[2][0] += dt * speed * dir.x;
-		pos->transform[2][1] += dt * speed * dir.y;
-		pos->flags().colliding = false;
+		cur->pos() += dt * speed * dir;
+		cur->flags().colliding = false;
 	}
 	for (auto &[e, data] : colliding_) {
-		const auto pos = rdr.access(e);
+		const auto cur = rdr.access(e);
 		const auto tgt = rdr.access(data.target);
-		const circle tgt_hitbox{
-			{ tgt->transform[2][0], tgt->transform[2][1] },
-			tgt->transform[0][0] / 2.0f,
-		};
-		const triangle pos_hitbox{
-			{ pos->transform[2][0], pos->transform[2][1] },
-			{ pos->transform[0][0], pos->transform[0][1] },
-			{ pos->transform[1][0], pos->transform[1][1] },
-		};
-		const auto colliding = collision_test(tgt_hitbox, pos_hitbox);
-		pos->flags().colliding = colliding;
+		const circle tgt_hitbox{ tgt->pos(), tgt->x().x / 2.0f };
+		const triangle cur_hitbox{ cur->pos(), cur->x(), cur->y() };
+		const auto colliding = collision_test(tgt_hitbox, cur_hitbox);
+		cur->flags().colliding = colliding;
 		tgt->flags().colliding = colliding;
 	}
 }

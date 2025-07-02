@@ -5,6 +5,7 @@
 #include "shader.hpp"
 #include "texture.hpp"
 #include "window.hpp"
+#include "phys.hpp"
 
 
 class render
@@ -23,15 +24,12 @@ public:
 
 	using entity = std::uint32_t;
 
-	struct per_entity
+	struct per_entity : transform2d
 	{
-		glm::mat3 transform;
-
 		struct flags_t {
 			std::uint32_t colliding: 1;
 		};
 
-		const flags_t &flags() const;
 		flags_t &flags();
 	};
 

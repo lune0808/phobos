@@ -10,20 +10,20 @@
 
 render::per_entity quad_transform(glm::vec2 origin, glm::vec2 dims)
 {
-	return {{
+	return {{{
 		{ dims.x  , 0.0f    , 0.0f },
 		{ 0.0f    , dims.y  , 0.0f },
 		{ origin.x, origin.y, 1.0f },
-	}};
+	}}};
 }
 
 render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 {
-	return {{
+	return {{{
 		{ u.x     , u.y     , 0.0f },
 		{ v.x     , v.y     , 0.0f },
 		{ origin.x, origin.y, 1.0f },
-	}};
+	}}};
 }
 
 void player_control(window const &win, render &rdr, render::entity player, float dt)
@@ -41,9 +41,8 @@ void player_control(window const &win, render &rdr, render::entity player, float
 	if (glm::length2(offset) > 0.5f) {
 		const auto speed = 0.5f;
 		offset = dt * speed * glm::normalize(offset);
-		const auto pos = rdr.access(player);
-		pos->transform[2][0] += offset.x;
-		pos->transform[2][1] += offset.y;
+		const auto tfm = rdr.access(player);
+		tfm->pos() += offset;
 		rdr.camera.pos -= offset;
 	}
 	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -76,7 +75,7 @@ int main()
 			const auto t1 = t0 + 0.3f;
 			const glm::vec2 u{ 0.4f * std::cos(t0), 0.4f * std::sin(t0) };
 			const glm::vec2 v{ 0.4f * std::cos(t1), 0.4f * std::sin(t1) };
-			*cone_gfx_state = tri_transform({ cone_gfx_state->transform[2][0], cone_gfx_state->transform[2][1] }, u, v);
+			*cone_gfx_state = tri_transform(cone_gfx_state->pos(), u, v);
 		}
 		player_control(win, rdr, player, dt);
 		tick.update(dt);
