@@ -23,8 +23,8 @@ static GLuint describe_layout_f2f2(void *data, size_t size)
 	return va;
 }
 
-render::render()
-	: ok(0), nexte(1)
+render::render(glm::vec2 campos, glm::vec2 camdim)
+	: ok(0), nexte(1), camera{campos, camdim}
 {
 	using namespace std::literals;
 	shader_pipeline shader{
@@ -156,10 +156,15 @@ render::per_entity *render::access(entity e)
 	return addr != data[e & ENT_MASK].end()? &addr->second: nullptr;
 }
 
-void render::draw(window const &to)
+void render::draw()
 {
-	const auto dims = to.dims();
-	const glm::mat3 view = { { 1.0f, 0.0f, 0.0f }, { 0.0f, float(dims.x) / float(dims.y), 0.0f }, { 0.0f, 0.0f, 1.0f } };
+	const auto aspect_ratio = camera.dim.x / camera.dim.y;
+	// translate THEN scale, so the scale is also applied to the offsets
+	const glm::mat3 view{
+		{ 1.0f        , 0.0f                       , 0.0f },
+		{ 0.0f        , aspect_ratio               , 0.0f },
+		{ camera.pos.x, camera.pos.y * aspect_ratio, 1.0f },
+	};
 	for (size_t obj = 0; obj < NUM; ++obj) {
 		const auto &this_draw = ctx[obj];
 		this_draw.shader.bind();

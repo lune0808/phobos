@@ -17,5 +17,7 @@ public:
 	bool live() const;
 	void draw() const;
 	glm::ivec2 dims() const;
+
+	auto get_handle() const { return this->handle; }
 };
 

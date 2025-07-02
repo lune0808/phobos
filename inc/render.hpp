@@ -51,14 +51,18 @@ private:
 
 public:
 	std::vector<entity> despawning;
+	struct {
+		glm::vec2 pos;
+		glm::vec2 dim;
+	} camera;
 
-	render();
+	render(glm::vec2 campos, glm::vec2 camdim);
 	~render();
 
 	entity spawn(object type, per_entity const &settings);
 	void despawn(entity e);
 	per_entity *access(entity e);
 
-	void draw(window const &to);
+	void draw();
 };
 

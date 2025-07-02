@@ -3,6 +3,8 @@
 #include "phys.hpp"
 #include "tick.hpp"
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/norm.hpp>
 #include <string_view>
 
 
@@ -24,13 +26,37 @@ render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 	}};
 }
 
+void player_control(window const &win, render &rdr, render::entity player, float dt)
+{
+	const auto handle = win.get_handle();
+	glm::vec2 offset{ 0.0f, 0.0f };
+	if (glfwGetKey(handle, GLFW_KEY_W) == GLFW_PRESS)
+		offset.y += 1.0f;
+	if (glfwGetKey(handle, GLFW_KEY_S) == GLFW_PRESS)
+		offset.y -= 1.0f;
+	if (glfwGetKey(handle, GLFW_KEY_D) == GLFW_PRESS)
+		offset.x += 1.0f;
+	if (glfwGetKey(handle, GLFW_KEY_A) == GLFW_PRESS)
+		offset.x -= 1.0f;
+	if (glm::length2(offset) > 0.5f) {
+		const auto speed = 0.5f;
+		offset = dt * speed * glm::normalize(offset);
+		const auto pos = rdr.access(player);
+		pos->transform[2][0] += offset.x;
+		pos->transform[2][1] += offset.y;
+		rdr.camera.pos -= offset;
+	}
+	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(handle, true);
+}
+
 int main()
 {
 	using namespace std::literals;
 	// TODO: use a NUL-terminated string type
 	window win{"Gaming\0"sv};
 	if (win.error()) return 1;
-	render rdr{};
+	render rdr{{0.0f,0.0f}, win.dims()};
 	tick tick{rdr};
 	const auto player = rdr.spawn(render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
 	const auto enemy  = rdr.spawn(render::object::enemy , quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
@@ -52,8 +78,9 @@ int main()
 			const glm::vec2 v{ 0.4f * std::cos(t1), 0.4f * std::sin(t1) };
 			*cone_gfx_state = tri_transform({ cone_gfx_state->transform[2][0], cone_gfx_state->transform[2][1] }, u, v);
 		}
+		player_control(win, rdr, player, dt);
 		tick.update(dt);
-		rdr.draw(win);
+		rdr.draw();
 		win.draw();
 	}
 	rdr.despawn(enemy );
