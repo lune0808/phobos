@@ -69,15 +69,4 @@ void tick::update(float dt)
 		cur->y() = state_next;
 		data.state = state_next;
 	}
-	for (auto &[e, data] : colliding_) {
-		const auto cur = rdr.access(e);
-		const auto tgt = rdr.access(data.target);
-		const circle tgt_hitbox{ tgt->pos(), tgt->x().x / 2.0f };
-		const triangle cur_hitbox{ cur->pos(), cur->x(), cur->y() };
-		const auto colliding = collision_test(tgt_hitbox, cur_hitbox);
-		if (!colliding)
-			continue;
-		rdr.colliding.emplace(e);
-		rdr.colliding.emplace(data.target);
-	}
 }

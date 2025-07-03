@@ -13,10 +13,10 @@ class render
 {
 public:
 	enum object {
-		player,
+		trail,
 		enemy,
 		attack_cone,
-		trail,
+		player,
 		NUM
 	};
 

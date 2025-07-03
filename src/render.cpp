@@ -47,12 +47,15 @@ static trail_buffers describe_layout_trail(size_t segment_count)
 		const auto end = uv.size();
 		// -1 -3
 		// -2 -4
+		// provoking vertex is the last of a triangle
+		// and we want to take the "newest" one so
+		// that old trails do not show
 		tri.emplace_back(end-2);
 		tri.emplace_back(end-4);
 		tri.emplace_back(end-3);
+		tri.emplace_back(end-1);
 		tri.emplace_back(end-2);
 		tri.emplace_back(end-3);
-		tri.emplace_back(end-1);
 	}
 
 	trail_buffers buf;
@@ -123,7 +126,7 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 		"layout(location=1) in vec2 attr_uv;\n"
 		"layout(location=2) in float attr_timestamp;\n"
 		"out vec2 vert_uv;\n"
-		"out float vert_scale;\n"
+		"flat out float vert_scale;\n"
 		"uniform float now;\n"
 		"uniform float max_dt;\n"
 		"uniform mat3 unif_view;\n"
@@ -136,7 +139,7 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 
 		"#version 410 core\n"
 		"in vec2 vert_uv;\n"
-		"in float vert_scale;\n"
+		"flat in float vert_scale;\n"
 		"out vec4 frag_color;\n"
 		"uniform sampler2D unif_color;\n"
 		"void main() {\n"
@@ -189,7 +192,7 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 	}
 
 	{
-		unsigned char fill[4] = { 0xf2, 0xde, 0xe3, 0xc0 };
+		unsigned char fill[4] = { 0xf2, 0xde, 0xe3, 0xff };
 		image img;
 		img.base = fill;
 		img.width = 1;

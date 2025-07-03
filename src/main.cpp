@@ -21,21 +21,21 @@ render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 	return {{{ u, v, origin }}};
 }
 
-render::entity spawn_slash(render &rdr, tick &tick, render::entity player, render::entity target)
+render::entity spawn_slash(render &rdr, tick &tick, phys &phys, render::entity player, render::entity target)
 {
-	const auto pos = rdr.access(player)->pos() + glm::vec2{0.5f,0.0f};
+	const auto pos = rdr.access(player)->pos() + glm::vec2{0.55f,0.0f};
 	const auto cone = rdr.spawn(render::object::attack_cone, quad_transform(pos, {0.0f,0.0f}));
 	const auto trail = rdr.spawn(render::object::trail, render::per_entity{});
 	const float lifetime = 0.2f;
 	tick.expire_in(cone, {lifetime});
 	tick.expire_in(trail, {lifetime});
-	tick.spin(cone, {{0.5f, 0.2f}});
-	tick.collide_test(cone, {target});
+	tick.spin(cone, {{0.2f,-0.4f}});
 	rdr.add_trail(trail, cone);
+	phys.collider_triangle(cone, phys::mask_v<circle>);
 	return cone;
 }
 
-render::entity player_control(window const &win, render &rdr, tick &tick,
+render::entity player_control(window const &win, render &rdr, tick &tick, phys &phys,
 		render::entity attack, render::entity target, render::entity player, float dt)
 {
 	const auto handle = win.get_handle();
@@ -58,7 +58,7 @@ render::entity player_control(window const &win, render &rdr, tick &tick,
 	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(handle, true);
 	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !rdr.access(attack))
-		attack = spawn_slash(rdr, tick, player, target);
+		attack = spawn_slash(rdr, tick, phys, player, target);
 	return attack;
 }
 
@@ -70,8 +70,11 @@ int main()
 	if (win.error()) return 1;
 	render rdr{{0.0f,0.0f}, win.dims()};
 	tick tick{rdr};
+	phys phys;
 	const auto player = rdr.spawn(render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
 	const auto enemy  = rdr.spawn(render::object::enemy , quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
+	phys.collider_circle(player, 0);
+	phys.collider_circle(enemy, 0);
 	tick.follow(enemy, {player});
 	render::entity attack = 0;
 
@@ -80,8 +83,9 @@ int main()
 		const auto now = glfwGetTime();
 		const auto dt = now - prev_time;
 		prev_time = now;
-		attack = player_control(win, rdr, tick, attack, enemy, player, dt);
+		attack = player_control(win, rdr, tick, phys, attack, enemy, player, dt);
 		tick.update(dt);
+		phys.sim(rdr, dt);
 		rdr.draw();
 		win.draw();
 	}
