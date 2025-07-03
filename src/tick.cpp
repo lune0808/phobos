@@ -32,6 +32,13 @@ void tick::fini()
 {
 }
 
+void tick::clear()
+{
+	expiring_.clear();
+	following_.clear();
+	spinning_.clear();
+}
+
 void tick::update(float, float dt)
 {
 	for (auto &[e, data] : expiring_) {

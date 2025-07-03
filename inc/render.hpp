@@ -72,6 +72,7 @@ public:
 	void trailable(entity e, entity ref);
 
 	void update(float now, float dt);
+	void clear();
 	int init();
 	void fini();
 };

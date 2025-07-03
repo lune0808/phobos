@@ -23,6 +23,11 @@ void tfms::update(float, float)
 	}
 }
 
+void tfms::clear()
+{
+	data.clear();
+}
+
 void tfms::transformable(entity e, transform tfm)
 {
 	auto [_, inserted] = data.emplace(e, tfm);

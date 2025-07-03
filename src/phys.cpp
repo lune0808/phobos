@@ -169,6 +169,16 @@ void phys::update_colliders()
 	}
 }
 
+void phys::clear()
+{
+	circle_.clear();
+	triangle_.clear();
+	ray_.clear();
+	wall_mesh_.clear();
+	speed.clear();
+	colliding.clear();
+}
+
 void phys::update(float, float dt)
 {
 	colliding.clear();

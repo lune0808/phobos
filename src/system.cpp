@@ -32,4 +32,11 @@ void update(float now, float dt)
 	update(); // entity index could be a system too
 }
 
+void clear()
+{
+#define X(name) system.name.clear();
+	PHOBOS_SYSTEMS(X)
+#undef X
+}
+
 } // phobos

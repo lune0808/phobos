@@ -252,6 +252,14 @@ void render::drawable(entity e, object type)
 	assert(inserted);
 }
 
+void render::clear()
+{
+	for (size_t obj = 0; obj < NUM; ++obj) {
+		drawing_[obj].clear();
+	}
+	trails.trailing_.clear();
+}
+
 void render::update(float now, float)
 {
 	for (const auto e : on_hold()) {

@@ -96,6 +96,7 @@ struct phys
 	int init();
 	void fini();
 	void update(float now, float dt);
+	void clear();
 };
 
 } // phobos

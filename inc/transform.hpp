@@ -17,6 +17,7 @@ struct tfms
 	int init();
 	void fini();
 	void update(float, float);
+	void clear();
 
 	std::unordered_map<entity, transform> data;
 

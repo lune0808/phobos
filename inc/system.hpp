@@ -32,6 +32,7 @@ extern struct global_systems
 system_id init();
 void fini();
 void update(float now, float dt);
+void clear();
 
 } // phobos
 

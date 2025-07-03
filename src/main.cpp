@@ -94,9 +94,7 @@ int main()
 		phobos::update(now, dt);
 		win.draw();
 	}
-	phobos::despawn(e2);
-	phobos::despawn(e1);
-	phobos::despawn(player);
+	phobos::clear();
 	phobos::fini();
 }
 

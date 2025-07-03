@@ -18,6 +18,7 @@ public:
 	int init();
 	void fini();
 	void update(float now, float dt);
+	void clear();
 
 	void expire_in(entity e, expire_in_t data);
 	void follow(entity e, follow_t data);
