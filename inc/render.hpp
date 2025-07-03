@@ -17,6 +17,13 @@ public:
 		enemy,
 		attack_cone,
 		player,
+		// wall_mesh :
+		// offline, build a triangle (inside) mesh describing
+		// where you can walk, ordered so that vertices i,i+1modN
+		// are always edges along the boundary so collision test
+		// can just ignore the triangle table,
+		// and to draw it you clear screen with the "outside"
+		// texture then draw the "inside" as the wall_mesh
 		NUM
 	};
 

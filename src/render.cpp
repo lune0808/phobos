@@ -220,7 +220,7 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 		img.channels = 4;
 		texture tex{img, trail_shader, "unif_color\0"sv};
 		auto buf = describe_layout_trail(TRAIL_MAX_SEGMENTS);
-		ctx[trail] = per_draw{ buf.va, trail_shader, tex, 6 };
+		ctx[trail] = per_draw{ buf.va, trail_shader, tex, (TRAIL_MAX_SEGMENTS-1)*6 };
 		trails.wpos = buf.wpos;
 		trails.ts = buf.ts;
 		++ok;
@@ -314,7 +314,7 @@ void render::draw()
 				glBindBuffer(GL_ARRAY_BUFFER, trails.ts);
 				glBufferSubData(GL_ARRAY_BUFFER, 0, to_end * sizeof(float[2]), &data.timestamp[data.insert]);
 				glBufferSubData(GL_ARRAY_BUFFER, to_end * sizeof(float[2]), from_start * sizeof(float[2]), &data.timestamp[0]          );
-				glDrawElements(GL_TRIANGLES, (TRAIL_MAX_SEGMENTS-1)*6, GL_UNSIGNED_INT, nullptr);
+				glDrawElements(GL_TRIANGLES, this_draw.tricount, GL_UNSIGNED_INT, nullptr);
 			}
 		}
 	}

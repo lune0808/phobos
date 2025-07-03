@@ -71,6 +71,40 @@ glm::vec2 &transform2d::y()
 	return *reinterpret_cast<glm::vec2*>(&repr[1]);
 }
 
+bool collision_test(ray const &r1, ray const &r2)
+{
+	const auto diff = r2.origin - r1.origin;
+	static constexpr float epsilon = 1e-6;
+	const glm::mat2 system{ r1.swept, r2.swept };
+	const auto det = glm::determinant(system);
+	// parallel lines. may be the same but whatever
+	if (glm::abs(det) < epsilon)
+		return false;
+	const auto [t1, minus_t2] = glm::inverse(system) * diff;
+	// if t1,t2 are in [0,1], collision at rN.O + tN * rN.S
+	return (0.0f <= t1 && t1 <= 1.0f)
+	    && (0.0f >= minus_t2 && minus_t2 >= -1.0f);
+}
+
+bool collision_test(circle const &c, wall_mesh const &m)
+{
+	const ray edge{
+		m.boundary.back(),
+		m.boundary[0]-m.boundary.back(),
+	};
+	if (collision_test(c, edge).has_intersection)
+		return true;
+	for (size_t i = 0; i < m.boundary.size()-1; ++i) {
+		const ray edge{
+			m.boundary[i],
+			m.boundary[i+1]-m.boundary[i],
+		};
+		if (collision_test(c, edge).has_intersection) {
+			return true;
+		}
+	}
+	return false;
+}
 
 void phys::collider_circle(std::uint32_t e, std::uint32_t collide_mask)
 {
@@ -85,11 +119,38 @@ void phys::collider_triangle(std::uint32_t e, std::uint32_t collide_mask)
 	assert(inserted);
 }
 
+void phys::collider_ray(std::uint32_t e, std::uint32_t collide_mask)
+{
+	auto [at, inserted] = ray_.emplace(e, collider<ray>{ ::ray{}, collide_mask });
+	assert(inserted);
+}
+
+void phys::collider_wall_mesh(std::uint32_t e, wall_mesh const &m)
+{
+	auto [at, inserted] = wall_mesh_.emplace(e, collider<wall_mesh>{m, 0});
+	assert(inserted);
+}
+
+void phys::add_speed(std::uint32_t e, glm::vec2 initial)
+{
+	auto [at, inserted] = speed.emplace(e, initial);
+	assert(inserted);
+}
+
+glm::vec2 *phys::get_speed(std::uint32_t e)
+{
+	auto at = speed.find(e);
+	return at != speed.end()? &at->second: nullptr;
+}
+
 void phys::update_colliders(render &rdr)
 {
 	for (const auto e : rdr.despawning) {
 		circle_.erase(e);
 		triangle_.erase(e);
+		ray_.erase(e);
+		wall_mesh_.erase(e);
+		speed.erase(e);
 	}
 	for (auto &[e, col] : circle_) {
 		const auto tfm = rdr.access(e);
@@ -101,6 +162,11 @@ void phys::update_colliders(render &rdr)
 		col.origin = tfm->pos();
 		col.u = tfm->x();
 		col.v = tfm->y();
+	}
+	for (auto &[e, col] : ray_) {
+		const auto tfm = rdr.access(e);
+		col.origin = tfm->pos();
+		col.swept = tfm->x();
 	}
 }
 
@@ -116,11 +182,36 @@ void phys::sim(render &rdr, float dt)
 				}
 			}
 		}
+		if (col1.mask & (1zu<<::ray::bit)) {
+			for (auto &[e2, col2] : ray_) {
+				if (collision_test(col1, col2).has_intersection) {
+					rdr.colliding.emplace(e1);
+					rdr.colliding.emplace(e2);
+				}
+			}
+		}
+		if (col1.mask & (1zu<<::wall_mesh::bit)) {
+			for (auto &[e2, col2] : wall_mesh_) {
+				if (collision_test(col1, col2)) {
+					rdr.colliding.emplace(e1);
+					rdr.colliding.emplace(e2);
+				}
+			}
+		}
 	}
 	for (auto &[e1, col1] : triangle_) {
 		if (col1.mask & (1zu<<::circle::bit)) {
 			for (auto &[e2, col2] : circle_) {
 				if (collision_test(col2, col1)) {
+					rdr.colliding.emplace(e1);
+					rdr.colliding.emplace(e2);
+				}
+			}
+		}
+		if (col1.mask & (1zu<<::ray::bit)) {
+			// approximate tests assuming small triangles
+			for (auto &[e2, col2] : ray_) {
+				if (collision_test(ray{col1.origin, col1.u}, col2)) {
 					rdr.colliding.emplace(e1);
 					rdr.colliding.emplace(e2);
 				}

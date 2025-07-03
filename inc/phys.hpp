@@ -35,8 +35,17 @@ struct ray_circle_intersection
 	bool has_intersection;
 };
 
+struct wall_mesh
+{
+	std::vector<glm::vec2> boundary; // [i;i+1modN] edges
+
+	enum { bit = 3 };
+};
+
 ray_circle_intersection collision_test(circle const &c, ray const &r);
 bool collision_test(circle const &c, triangle const &t);
+bool collision_test(ray const &r1, ray const &r2);
+bool collision_test(circle const &c, wall_mesh const &m);
 
 struct transform2d
 {
@@ -67,9 +76,16 @@ struct phys
 
 	std::unordered_map<std::uint32_t, collider<circle>> circle_;
 	std::unordered_map<std::uint32_t, collider<triangle>> triangle_;
+	std::unordered_map<std::uint32_t, collider<ray>> ray_;
+	std::unordered_map<std::uint32_t, collider<wall_mesh>> wall_mesh_;
+	std::unordered_map<std::uint32_t, glm::vec2> speed;
 
 	void collider_circle(std::uint32_t e, std::uint32_t collide_mask);
 	void collider_triangle(std::uint32_t e, std::uint32_t collide_mask);
+	void collider_ray(std::uint32_t e, std::uint32_t collide_mask);
+	void collider_wall_mesh(std::uint32_t e, wall_mesh const &m);
+	void add_speed(std::uint32_t e, glm::vec2 initial);
+	glm::vec2 *get_speed(std::uint32_t e);
 	void update_colliders(render &rdr);
 	void sim(render &rdr, float dt);
 };
