@@ -60,6 +60,16 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 	return attack;
 }
 
+phobos::entity spawn_enemy(phobos::entity player, glm::vec2 pos)
+{
+	const auto enemy = phobos::spawn();
+	ng.tfms.transformable(enemy, quad_transform(pos, {0.5f,0.5f}));
+	ng.render.drawable(enemy, phobos::render::object::enemy);
+	ng.phys.collider_circle(enemy, 0);
+	ng.tick.follow(enemy, {player});
+	return enemy;
+}
+
 int main()
 {
 	using namespace std::literals;
@@ -68,15 +78,12 @@ int main()
 	if (win.error()) return 1;
 	if (phobos::init() != phobos::system_id::none) return 1;
 	const auto player = phobos::spawn();
-	const auto enemy = phobos::spawn();
 	ng.render.drawable(player, phobos::render::object::player);
-	ng.render.drawable(enemy, phobos::render::object::enemy);
 	ng.tfms.transformable(player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
-	ng.tfms.transformable(enemy, quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
 	ng.phys.collider_circle(player, 0);
-	ng.phys.collider_circle(enemy, 0);
-	ng.tick.follow(enemy, {player});
 	phobos::entity attack = 0;
+	const auto e1 = spawn_enemy(player, {+0.6f,+0.2f});
+	const auto e2 = spawn_enemy(player, {+0.9f,-0.5f});
 
 	auto prev_time = glfwGetTime();
 	while (win.live()) {
@@ -87,7 +94,8 @@ int main()
 		phobos::update(now, dt);
 		win.draw();
 	}
-	phobos::despawn(enemy );
+	phobos::despawn(e2);
+	phobos::despawn(e1);
 	phobos::despawn(player);
 	phobos::fini();
 }
