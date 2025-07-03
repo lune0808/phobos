@@ -3,7 +3,6 @@
 #include "phys.hpp"
 #include "tick.hpp"
 #include <glm/glm.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 #include <string_view>
 
@@ -11,19 +10,15 @@
 render::per_entity quad_transform(glm::vec2 origin, glm::vec2 dims)
 {
 	return {{{
-		{ dims.x  , 0.0f     },
-		{ 0.0f    , dims.y   },
-		{ origin.x, origin.y },
+		{ dims.x, 0.0f   },
+		{ 0.0f  , dims.y },
+		origin
 	}}};
 }
 
 render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 {
-	return {{{
-		{ u.x     , u.y      },
-		{ v.x     , v.y      },
-		{ origin.x, origin.y },
-	}}};
+	return {{{ u, v, origin }}};
 }
 
 void player_control(window const &win, render &rdr, render::entity player, float dt)
@@ -60,23 +55,19 @@ int main()
 	const auto player = rdr.spawn(render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
 	const auto enemy  = rdr.spawn(render::object::enemy , quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
 	const auto cone = rdr.spawn(render::object::attack_cone, tri_transform({ 0.3f,-0.1f}, {0.4f,0.1f}, {-0.1f,0.4f}));
+	const auto cone_trail = rdr.spawn(render::object::trail, render::per_entity{});
 	tick.expire_in(cone, {10.0f});
 	tick.follow(enemy, {player});
+	tick.spin(cone, {{0.4f, 0.1f}});
 	tick.collide_test(cone, {enemy});
+	rdr.add_trail(cone_trail, cone);
+	tick.expire_in(cone_trail, {10.0f});
 
 	auto prev_time = glfwGetTime();
 	while (win.live()) {
 		const auto now = glfwGetTime();
 		const auto dt = now - prev_time;
 		prev_time = now;
-		const auto cone_gfx_state = rdr.access(cone);
-		if (cone_gfx_state) {
-			const auto t0 = glfwGetTime();
-			const auto t1 = t0 + 0.3f;
-			const glm::vec2 u{ 0.4f * std::cos(t0), 0.4f * std::sin(t0) };
-			const glm::vec2 v{ 0.4f * std::cos(t1), 0.4f * std::sin(t1) };
-			*cone_gfx_state = tri_transform(cone_gfx_state->pos(), u, v);
-		}
 		player_control(win, rdr, player, dt);
 		tick.update(dt);
 		rdr.draw();

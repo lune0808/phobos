@@ -1,5 +1,4 @@
 #include "phys.hpp"
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 
 ray_circle_intersection collision_test(circle const &c, ray const &r)
