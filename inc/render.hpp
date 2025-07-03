@@ -8,6 +8,7 @@
 #include "window.hpp"
 #include "entity.hpp"
 #include "phys.hpp"
+#include "transform.hpp"
 
 namespace phobos {
 
@@ -29,8 +30,6 @@ public:
 		NUM
 	};
 
-	struct per_entity : transform2d {};
-
 private:
 	struct per_draw
 	{
@@ -43,7 +42,7 @@ private:
 	enum : size_t { TRAIL_MAX_SEGMENTS = 128zu };
 
 	per_draw ctx[NUM];
-	std::unordered_map<entity, per_entity> data[NUM];
+	std::unordered_set<entity> drawing_[NUM];
 
 	struct quad {
 		glm::vec2 base;
@@ -69,9 +68,7 @@ public:
 		glm::vec2 dim;
 	} camera;
 
-	void drawable(entity e, object type, per_entity const &settings);
-	// should be its own component
-	per_entity *access(entity e);
+	void drawable(entity e, object type);
 	void trailable(entity e, entity ref);
 
 	void update(float now, float dt);

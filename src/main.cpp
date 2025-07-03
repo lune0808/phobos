@@ -6,27 +6,25 @@
 
 inline auto &ng = phobos::system;
 
-phobos::render::per_entity quad_transform(glm::vec2 origin, glm::vec2 dims)
+phobos::transform tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 {
-	return {{{
-		{ dims.x, 0.0f   },
-		{ 0.0f  , dims.y },
-		origin
-	}}};
+	return {{ u, v, origin }};
 }
 
-phobos::render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
+phobos::transform quad_transform(glm::vec2 origin, glm::vec2 dims)
 {
-	return {{{ u, v, origin }}};
+	return tri_transform(origin, {dims.x,0.0f}, {0.0f,dims.y});
 }
 
 phobos::entity spawn_slash(phobos::entity player)
 {
-	const auto pos = ng.render.access(player)->pos() + glm::vec2{0.55f,0.0f};
+	const auto pos = ng.tfms.get(player)->pos() + glm::vec2{0.55f,0.0f};
 	const auto cone = phobos::spawn();
 	const auto trail = phobos::spawn();
-	ng.render.drawable(cone, phobos::render::object::attack_cone, quad_transform(pos, {0.0f,0.0f}));
-	ng.render.drawable(trail, phobos::render::object::trail, phobos::render::per_entity{});
+	ng.render.drawable(cone, phobos::render::object::attack_cone);
+	ng.render.drawable(trail, phobos::render::object::trail);
+	ng.tfms.transformable(cone, quad_transform(pos, {0.0f,0.0f}));
+	ng.tfms.transformable(trail, {});
 	const float lifetime = 0.2f;
 	ng.tick.expire_in(cone, {lifetime});
 	ng.tick.expire_in(trail, {lifetime});
@@ -51,13 +49,13 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 	if (glm::length2(offset) > 0.5f) {
 		const auto speed = 0.5f;
 		offset = dt * speed * glm::normalize(offset);
-		const auto tfm = ng.render.access(player);
+		const auto tfm = ng.tfms.get(player);
 		tfm->pos() += offset;
 		ng.render.camera.pos -= offset;
 	}
 	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(handle, true);
-	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !ng.render.access(attack))
+	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !ng.tfms.get(attack))
 		attack = spawn_slash(player);
 	return attack;
 }
@@ -71,8 +69,10 @@ int main()
 	if (phobos::init() != phobos::system_id::none) return 1;
 	const auto player = phobos::spawn();
 	const auto enemy = phobos::spawn();
-	ng.render.drawable(player, phobos::render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
-	ng.render.drawable(enemy, phobos::render::object::enemy, quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
+	ng.render.drawable(player, phobos::render::object::player);
+	ng.render.drawable(enemy, phobos::render::object::enemy);
+	ng.tfms.transformable(player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
+	ng.tfms.transformable(enemy, quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
 	ng.phys.collider_circle(player, 0);
 	ng.phys.collider_circle(enemy, 0);
 	ng.tick.follow(enemy, {player});

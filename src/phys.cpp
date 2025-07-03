@@ -152,18 +152,18 @@ void phys::update_colliders()
 		speed.erase(e);
 	}
 	for (auto &[e, col] : circle_) {
-		const auto tfm = system.render.access(e);
+		const auto tfm = system.tfms.get(e);
 		col.origin = tfm->pos();
 		col.radius = tfm->x().x * 0.5f;
 	}
 	for (auto &[e, col] : triangle_) {
-		const auto tfm = system.render.access(e);
+		const auto tfm = system.tfms.get(e);
 		col.origin = tfm->pos();
 		col.u = tfm->x();
 		col.v = tfm->y();
 	}
 	for (auto &[e, col] : ray_) {
-		const auto tfm = system.render.access(e);
+		const auto tfm = system.tfms.get(e);
 		col.origin = tfm->pos();
 		col.swept = tfm->x();
 	}

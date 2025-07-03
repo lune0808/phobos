@@ -3,11 +3,13 @@
 #include "render.hpp"
 #include "tick.hpp"
 #include "phys.hpp"
+#include "transform.hpp"
 
 namespace phobos {
 
 #define PHOBOS_SYSTEMS(X) \
-	X(tick) \
+	X(tick) /* tick decides if entities are live for this frame so it is always first */ \
+	X(tfms) \
 	X(phys) \
 	X(render) \
 

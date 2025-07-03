@@ -246,33 +246,22 @@ void render::fini()
 	}
 }
 
-void render::drawable(entity e, object type, per_entity const &settings)
+void render::drawable(entity e, object type)
 {
-	const auto [addr, inserted] = data[type].emplace(e, settings);
+	const auto [addr, inserted] = drawing_[type].emplace(e);
 	assert(inserted);
-}
-
-render::per_entity *render::access(entity e)
-{
-	// dumb loop for now
-	for (size_t obj = 0; obj < NUM; ++obj) {
-		auto addr = data[obj].find(e);
-		if (addr != data[obj].end())
-			return &addr->second;
-	}
-	return nullptr;
 }
 
 void render::update(float now, float)
 {
 	for (const auto e : on_hold()) {
 		for (size_t obj = 0; obj < NUM; ++obj) {
-			data[obj].erase(e);
+			drawing_[obj].erase(e);
 		}
 		trails.trailing_.erase(e);
 	}
 	for (auto &[e, data] : trails.trailing_) {
-		const auto ref = access(e);
+		const auto ref = system.tfms.get(e);
 		data.buf[data.insert].base = ref->pos();
 		data.buf[data.insert].offs = ref->pos() + ref->y();
 		data.timestamp[data.insert] = glm::vec2{now, now};
@@ -291,7 +280,8 @@ void render::update(float now, float)
 		this_draw.tex.bind(0);
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
-		if (obj != trail) for (auto &[e, this_entity]: data[obj]) {
+		if (obj != trail) for (const auto e: drawing_[obj]) {
+			auto &this_entity = *system.tfms.get(e);
 			const glm::mat3 model{
 				glm::vec3{this_entity.  x(), 0.0f},
 				glm::vec3{this_entity.  y(), 0.0f},
