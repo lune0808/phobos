@@ -3,12 +3,14 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
+#include "entity.hpp"
+
+namespace phobos {
 
 struct circle
 {
 	glm::vec2 origin;
 	float radius;
-
 	enum { bit = 0 };
 };
 
@@ -16,7 +18,6 @@ struct ray
 {
 	glm::vec2 origin;
 	glm::vec2 swept;
-
 	enum { bit = 1 };
 };
 
@@ -25,21 +26,19 @@ struct triangle
 	glm::vec2 origin;
 	glm::vec2 u;
 	glm::vec2 v;
-
 	enum { bit = 2 };
+};
+
+struct wall_mesh
+{
+	std::vector<glm::vec2> boundary; // [i;i+1modN] edges
+	enum { bit = 3 };
 };
 
 struct ray_circle_intersection
 {
 	float time;
 	bool has_intersection;
-};
-
-struct wall_mesh
-{
-	std::vector<glm::vec2> boundary; // [i;i+1modN] edges
-
-	enum { bit = 3 };
 };
 
 ray_circle_intersection collision_test(circle const &c, ray const &r);
@@ -55,8 +54,6 @@ struct transform2d
 	glm::vec2 &x();
 	glm::vec2 &y();
 };
-
-struct render;
 
 struct phys
 {
@@ -74,19 +71,32 @@ struct phys
 		std::uint32_t mask;
 	};
 
-	std::unordered_map<std::uint32_t, collider<circle>> circle_;
-	std::unordered_map<std::uint32_t, collider<triangle>> triangle_;
-	std::unordered_map<std::uint32_t, collider<ray>> ray_;
-	std::unordered_map<std::uint32_t, collider<wall_mesh>> wall_mesh_;
-	std::unordered_map<std::uint32_t, glm::vec2> speed;
+	// possible better representation
+	// large array of (lhs.bit, rhs.bit)
+	// sorted so that each bucket always
+	// calls into the same one test
+	// instead of storing the masks
 
-	void collider_circle(std::uint32_t e, std::uint32_t collide_mask);
-	void collider_triangle(std::uint32_t e, std::uint32_t collide_mask);
-	void collider_ray(std::uint32_t e, std::uint32_t collide_mask);
-	void collider_wall_mesh(std::uint32_t e, wall_mesh const &m);
-	void add_speed(std::uint32_t e, glm::vec2 initial);
-	glm::vec2 *get_speed(std::uint32_t e);
-	void update_colliders(render &rdr);
-	void sim(render &rdr, float dt);
+	std::unordered_map<entity, collider<circle>> circle_;
+	std::unordered_map<entity, collider<triangle>> triangle_;
+	std::unordered_map<entity, collider<ray>> ray_;
+	std::unordered_map<entity, collider<wall_mesh>> wall_mesh_;
+	std::unordered_map<entity, glm::vec2> speed;
+
+	void collider_circle(entity e, std::uint32_t collide_mask);
+	void collider_triangle(entity e, std::uint32_t collide_mask);
+	void collider_ray(entity e, std::uint32_t collide_mask);
+	void collider_wall_mesh(entity e, wall_mesh const &m);
+	void add_speed(entity e, glm::vec2 initial);
+	glm::vec2 *get_speed(entity e);
+	void update_colliders();
+
+	std::unordered_set<entity> colliding;
+
+	int init();
+	void fini();
+	void update(float now, float dt);
 };
+
+} // phobos
 

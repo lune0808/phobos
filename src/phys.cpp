@@ -1,6 +1,7 @@
-#include "phys.hpp"
-#include "render.hpp"
+#include "system.hpp"
 #include <glm/gtx/norm.hpp>
+
+namespace phobos {
 
 ray_circle_intersection collision_test(circle const &c, ray const &r)
 {
@@ -56,20 +57,9 @@ bool collision_test(circle const &c, triangle const &t)
 	return false;
 }
 
-glm::vec2 &transform2d::pos()
-{
-	return *reinterpret_cast<glm::vec2*>(&repr[2]);
-}
-
-glm::vec2 &transform2d::x()
-{
-	return *reinterpret_cast<glm::vec2*>(&repr[0]);
-}
-
-glm::vec2 &transform2d::y()
-{
-	return *reinterpret_cast<glm::vec2*>(&repr[1]);
-}
+glm::vec2 &transform2d::pos() { return repr[2]; }
+glm::vec2 &transform2d::  x() { return repr[0]; }
+glm::vec2 &transform2d::  y() { return repr[1]; }
 
 bool collision_test(ray const &r1, ray const &r2)
 {
@@ -106,46 +96,55 @@ bool collision_test(circle const &c, wall_mesh const &m)
 	return false;
 }
 
-void phys::collider_circle(std::uint32_t e, std::uint32_t collide_mask)
+void phys::collider_circle(entity e, std::uint32_t collide_mask)
 {
 	// dynamically updated
-	auto [at, inserted] = circle_.emplace(e, collider<circle>{ ::circle{}, collide_mask });
+	auto [at, inserted] = circle_.emplace(e, collider<circle>{ circle{}, collide_mask });
 	assert(inserted);
 }
 
-void phys::collider_triangle(std::uint32_t e, std::uint32_t collide_mask)
+void phys::collider_triangle(entity e, std::uint32_t collide_mask)
 {
-	auto [at, inserted] = triangle_.emplace(e, collider<triangle>{ ::triangle{}, collide_mask });
+	auto [at, inserted] = triangle_.emplace(e, collider<triangle>{ triangle{}, collide_mask });
 	assert(inserted);
 }
 
-void phys::collider_ray(std::uint32_t e, std::uint32_t collide_mask)
+void phys::collider_ray(entity e, std::uint32_t collide_mask)
 {
-	auto [at, inserted] = ray_.emplace(e, collider<ray>{ ::ray{}, collide_mask });
+	auto [at, inserted] = ray_.emplace(e, collider<ray>{ ray{}, collide_mask });
 	assert(inserted);
 }
 
-void phys::collider_wall_mesh(std::uint32_t e, wall_mesh const &m)
+void phys::collider_wall_mesh(entity e, wall_mesh const &m)
 {
 	auto [at, inserted] = wall_mesh_.emplace(e, collider<wall_mesh>{m, 0});
 	assert(inserted);
 }
 
-void phys::add_speed(std::uint32_t e, glm::vec2 initial)
+void phys::add_speed(entity e, glm::vec2 initial)
 {
 	auto [at, inserted] = speed.emplace(e, initial);
 	assert(inserted);
 }
 
-glm::vec2 *phys::get_speed(std::uint32_t e)
+glm::vec2 *phys::get_speed(entity e)
 {
 	auto at = speed.find(e);
 	return at != speed.end()? &at->second: nullptr;
 }
 
-void phys::update_colliders(render &rdr)
+int phys::init()
 {
-	for (const auto e : rdr.despawning) {
+	return 0;
+}
+
+void phys::fini()
+{
+}
+
+void phys::update_colliders()
+{
+	for (const auto e : on_hold()) {
 		circle_.erase(e);
 		triangle_.erase(e);
 		ray_.erase(e);
@@ -153,69 +152,72 @@ void phys::update_colliders(render &rdr)
 		speed.erase(e);
 	}
 	for (auto &[e, col] : circle_) {
-		const auto tfm = rdr.access(e);
+		const auto tfm = system.render.access(e);
 		col.origin = tfm->pos();
 		col.radius = tfm->x().x * 0.5f;
 	}
 	for (auto &[e, col] : triangle_) {
-		const auto tfm = rdr.access(e);
+		const auto tfm = system.render.access(e);
 		col.origin = tfm->pos();
 		col.u = tfm->x();
 		col.v = tfm->y();
 	}
 	for (auto &[e, col] : ray_) {
-		const auto tfm = rdr.access(e);
+		const auto tfm = system.render.access(e);
 		col.origin = tfm->pos();
 		col.swept = tfm->x();
 	}
 }
 
-void phys::sim(render &rdr, float dt)
+void phys::update(float, float dt)
 {
-	update_colliders(rdr);
+	colliding.clear();
+	update_colliders();
 	for (auto &[e1, col1] : circle_) {
-		if (col1.mask & (1zu<<::triangle::bit)) {
+		if (col1.mask & (1zu<<triangle::bit)) {
 			for (auto &[e2, col2] : triangle_) {
 				if (collision_test(col1, col2)) {
-					rdr.colliding.emplace(e1);
-					rdr.colliding.emplace(e2);
+					colliding.emplace(e1);
+					colliding.emplace(e2);
 				}
 			}
 		}
-		if (col1.mask & (1zu<<::ray::bit)) {
+		if (col1.mask & (1zu<<ray::bit)) {
 			for (auto &[e2, col2] : ray_) {
 				if (collision_test(col1, col2).has_intersection) {
-					rdr.colliding.emplace(e1);
-					rdr.colliding.emplace(e2);
+					colliding.emplace(e1);
+					colliding.emplace(e2);
 				}
 			}
 		}
-		if (col1.mask & (1zu<<::wall_mesh::bit)) {
+		if (col1.mask & (1zu<<wall_mesh::bit)) {
 			for (auto &[e2, col2] : wall_mesh_) {
 				if (collision_test(col1, col2)) {
-					rdr.colliding.emplace(e1);
-					rdr.colliding.emplace(e2);
+					colliding.emplace(e1);
+					colliding.emplace(e2);
 				}
 			}
 		}
 	}
 	for (auto &[e1, col1] : triangle_) {
-		if (col1.mask & (1zu<<::circle::bit)) {
+		if (col1.mask & (1zu<<circle::bit)) {
 			for (auto &[e2, col2] : circle_) {
 				if (collision_test(col2, col1)) {
-					rdr.colliding.emplace(e1);
-					rdr.colliding.emplace(e2);
+					colliding.emplace(e1);
+					colliding.emplace(e2);
 				}
 			}
 		}
-		if (col1.mask & (1zu<<::ray::bit)) {
+		if (col1.mask & (1zu<<ray::bit)) {
 			// approximate tests assuming small triangles
 			for (auto &[e2, col2] : ray_) {
 				if (collision_test(ray{col1.origin, col1.u}, col2)) {
-					rdr.colliding.emplace(e1);
-					rdr.colliding.emplace(e2);
+					colliding.emplace(e1);
+					colliding.emplace(e2);
 				}
 			}
 		}
 	}
 }
+
+} // phobos

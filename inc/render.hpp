@@ -6,8 +6,10 @@
 #include "shader.hpp"
 #include "texture.hpp"
 #include "window.hpp"
+#include "entity.hpp"
 #include "phys.hpp"
 
+namespace phobos {
 
 class render
 {
@@ -27,12 +29,6 @@ public:
 		NUM
 	};
 
-	enum { ENT_SHIFT = 2 };
-	enum { ENT_MASK = (1<<ENT_SHIFT)-1 };
-	static_assert(NUM <= (1<<ENT_SHIFT), "increase shift amount");
-
-	using entity = std::uint32_t;
-
 	struct per_entity : transform2d {};
 
 private:
@@ -48,8 +44,6 @@ private:
 
 	per_draw ctx[NUM];
 	std::unordered_map<entity, per_entity> data[NUM];
-	size_t ok;
-	entity nexte;
 
 	struct quad {
 		glm::vec2 base;
@@ -70,21 +64,20 @@ private:
 	} trails;
 
 public:
-	std::vector<entity> despawning;
-	std::unordered_set<entity> colliding;
 	struct {
 		glm::vec2 pos;
 		glm::vec2 dim;
 	} camera;
 
-	render(glm::vec2 campos, glm::vec2 camdim);
-	~render();
-
-	entity spawn(object type, per_entity const &settings);
-	void despawn(entity e);
+	void drawable(entity e, object type, per_entity const &settings);
+	// should be its own component
 	per_entity *access(entity e);
-	void add_trail(entity e, entity ref);
+	void trailable(entity e, entity ref);
 
-	void draw();
+	void update(float now, float dt);
+	int init();
+	void fini();
 };
+
+} // phobos
 

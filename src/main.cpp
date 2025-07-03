@@ -1,13 +1,12 @@
 #include "window.hpp"
-#include "render.hpp"
-#include "phys.hpp"
-#include "tick.hpp"
+#include "system.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <string_view>
 
+inline auto &ng = phobos::system;
 
-render::per_entity quad_transform(glm::vec2 origin, glm::vec2 dims)
+phobos::render::per_entity quad_transform(glm::vec2 origin, glm::vec2 dims)
 {
 	return {{{
 		{ dims.x, 0.0f   },
@@ -16,27 +15,28 @@ render::per_entity quad_transform(glm::vec2 origin, glm::vec2 dims)
 	}}};
 }
 
-render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
+phobos::render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 {
 	return {{{ u, v, origin }}};
 }
 
-render::entity spawn_slash(render &rdr, tick &tick, phys &phys, render::entity player, render::entity target)
+phobos::entity spawn_slash(phobos::entity player)
 {
-	const auto pos = rdr.access(player)->pos() + glm::vec2{0.55f,0.0f};
-	const auto cone = rdr.spawn(render::object::attack_cone, quad_transform(pos, {0.0f,0.0f}));
-	const auto trail = rdr.spawn(render::object::trail, render::per_entity{});
+	const auto pos = ng.render.access(player)->pos() + glm::vec2{0.55f,0.0f};
+	const auto cone = phobos::spawn();
+	const auto trail = phobos::spawn();
+	ng.render.drawable(cone, phobos::render::object::attack_cone, quad_transform(pos, {0.0f,0.0f}));
+	ng.render.drawable(trail, phobos::render::object::trail, phobos::render::per_entity{});
 	const float lifetime = 0.2f;
-	tick.expire_in(cone, {lifetime});
-	tick.expire_in(trail, {lifetime});
-	tick.spin(cone, {{0.2f,-0.4f}});
-	rdr.add_trail(trail, cone);
-	phys.collider_triangle(cone, phys::mask_v<circle>);
+	ng.tick.expire_in(cone, {lifetime});
+	ng.tick.expire_in(trail, {lifetime});
+	ng.tick.spin(cone, {{0.2f,-0.4f}});
+	ng.render.trailable(trail, cone);
+	ng.phys.collider_triangle(cone, phobos::phys::mask_v<phobos::circle>);
 	return cone;
 }
 
-render::entity player_control(window const &win, render &rdr, tick &tick, phys &phys,
-		render::entity attack, render::entity target, render::entity player, float dt)
+phobos::entity player_control(window const &win, phobos::entity attack, phobos::entity player, float dt)
 {
 	const auto handle = win.get_handle();
 	glm::vec2 offset{ 0.0f, 0.0f };
@@ -51,14 +51,14 @@ render::entity player_control(window const &win, render &rdr, tick &tick, phys &
 	if (glm::length2(offset) > 0.5f) {
 		const auto speed = 0.5f;
 		offset = dt * speed * glm::normalize(offset);
-		const auto tfm = rdr.access(player);
+		const auto tfm = ng.render.access(player);
 		tfm->pos() += offset;
-		rdr.camera.pos -= offset;
+		ng.render.camera.pos -= offset;
 	}
 	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(handle, true);
-	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !rdr.access(attack))
-		attack = spawn_slash(rdr, tick, phys, player, target);
+	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !ng.render.access(attack))
+		attack = spawn_slash(player);
 	return attack;
 }
 
@@ -68,29 +68,28 @@ int main()
 	// TODO: use a NUL-terminated string type
 	window win{"Gaming\0"sv};
 	if (win.error()) return 1;
-	render rdr{{0.0f,0.0f}, win.dims()};
-	tick tick{rdr};
-	phys phys;
-	const auto player = rdr.spawn(render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
-	const auto enemy  = rdr.spawn(render::object::enemy , quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
-	phys.collider_circle(player, 0);
-	phys.collider_circle(enemy, 0);
-	tick.follow(enemy, {player});
-	render::entity attack = 0;
+	if (phobos::init() != phobos::system_id::none) return 1;
+	const auto player = phobos::spawn();
+	const auto enemy = phobos::spawn();
+	ng.render.drawable(player, phobos::render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
+	ng.render.drawable(enemy, phobos::render::object::enemy, quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
+	ng.phys.collider_circle(player, 0);
+	ng.phys.collider_circle(enemy, 0);
+	ng.tick.follow(enemy, {player});
+	phobos::entity attack = 0;
 
 	auto prev_time = glfwGetTime();
 	while (win.live()) {
 		const auto now = glfwGetTime();
 		const auto dt = now - prev_time;
 		prev_time = now;
-		attack = player_control(win, rdr, tick, phys, attack, enemy, player, dt);
-		tick.update(dt);
-		phys.sim(rdr, dt);
-		rdr.draw();
+		attack = player_control(win, attack, player, dt);
+		phobos::update(now, dt);
 		win.draw();
 	}
-	rdr.despawn(enemy );
-	rdr.despawn(player);
+	phobos::despawn(enemy );
+	phobos::despawn(player);
+	phobos::fini();
 }
 
 

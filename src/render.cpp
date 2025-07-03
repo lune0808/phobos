@@ -1,13 +1,13 @@
-#include "render.hpp"
-#include <cstdlib>
+#include "system.hpp"
 #include <cstring>
 #include <cassert>
-#include <algorithm>
 #include <print>
 #include <string_view>
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
 
+
+namespace phobos {
 
 static constexpr size_t MAX_TRAILS = 16zu;
 
@@ -85,9 +85,13 @@ static trail_buffers describe_layout_trail(size_t segment_count)
 	return buf;
 }
 
-render::render(glm::vec2 campos, glm::vec2 camdim)
-	: ok(0), nexte(1), camera{campos, camdim}
+int render::init()
 {
+	camera.pos.x = 0.0f;
+	camera.pos.y = 0.0f;
+	camera.dim.x = 800.0f;
+	camera.dim.y = 600.0f;
+	size_t ok = 0;
 	using namespace std::literals;
 	shader_pipeline shader{
 		"#version 410 core\n"
@@ -227,13 +231,13 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 	}
 
 	if (ok == NUM)
-		return;
+		return 0;
 fail:
 	std::print("[GFX] Failed to load graphics assets\n");
-	std::exit(1);
+	return 1;
 }
 
-render::~render()
+void render::fini()
 {
 	for (size_t obj = 0; obj < std::size(ctx); ++obj) {
 		glDeleteVertexArrays(1, &ctx[obj].va);
@@ -242,35 +246,31 @@ render::~render()
 	}
 }
 
-render::entity render::spawn(object type, per_entity const &settings)
+void render::drawable(entity e, object type, per_entity const &settings)
 {
-	const auto e = nexte++ << ENT_SHIFT | type;
 	const auto [addr, inserted] = data[type].emplace(e, settings);
 	assert(inserted);
-	return e;
-}
-
-void render::despawn(entity e)
-{
-
-	const auto type = e & ENT_MASK;
-	auto addr = data[type].find(e);
-	assert(addr != data[type].end());
-	data[type].erase(addr);
-	trails.trailing_.erase(e);
-	despawning.push_back(e);
 }
 
 render::per_entity *render::access(entity e)
 {
-	auto addr = data[e & ENT_MASK].find(e);
-	return addr != data[e & ENT_MASK].end()? &addr->second: nullptr;
+	// dumb loop for now
+	for (size_t obj = 0; obj < NUM; ++obj) {
+		auto addr = data[obj].find(e);
+		if (addr != data[obj].end())
+			return &addr->second;
+	}
+	return nullptr;
 }
 
-void render::draw()
+void render::update(float now, float)
 {
-	// ew
-	const auto now = glfwGetTime();
+	for (const auto e : on_hold()) {
+		for (size_t obj = 0; obj < NUM; ++obj) {
+			data[obj].erase(e);
+		}
+		trails.trailing_.erase(e);
+	}
 	for (auto &[e, data] : trails.trailing_) {
 		const auto ref = access(e);
 		data.buf[data.insert].base = ref->pos();
@@ -299,7 +299,7 @@ void render::draw()
 			};
 			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
 					1, GL_FALSE, glm::value_ptr(model));
-			const auto red_shift = colliding.contains(e)? 0.3f: 0.0f;
+			const auto red_shift = system.phys.colliding.contains(e)? 0.3f: 0.0f;
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		} else {
@@ -318,11 +318,9 @@ void render::draw()
 			}
 		}
 	}
-	despawning.clear();
-	colliding.clear();
 }
 
-void render::add_trail(entity t, entity ref)
+void render::trailable(entity t, entity ref)
 {
 	// timestamp being 0.0 means effectively nothing is drawn
 	auto [at, inserted] = trails.trailing_.emplace(ref, trail_t{});
@@ -330,3 +328,5 @@ void render::add_trail(entity t, entity ref)
 	auto trail = &at->second;
 	trail->t = t;
 }
+
+} // phobos
