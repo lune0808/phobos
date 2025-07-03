@@ -123,26 +123,25 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 		"layout(location=1) in vec2 attr_uv;\n"
 		"layout(location=2) in float attr_timestamp;\n"
 		"out vec2 vert_uv;\n"
-		"out float vert_dt;\n"
+		"out float vert_scale;\n"
 		"uniform float now;\n"
+		"uniform float max_dt;\n"
 		"uniform mat3 unif_view;\n"
 		"void main() {\n"
 		"	vert_uv = attr_uv;\n"
-		"	vert_dt = now - attr_timestamp;\n"
+		"	vert_scale = 1.0 - min(max_dt, now - attr_timestamp) / max_dt;\n"
 		"	vec3 pos = unif_view * vec3(attr_wpos, 1.0);\n"
 		"	gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
 		"}\n\0"sv,
 
 		"#version 410 core\n"
 		"in vec2 vert_uv;\n"
-		"in float vert_dt;\n"
+		"in float vert_scale;\n"
 		"out vec4 frag_color;\n"
 		"uniform sampler2D unif_color;\n"
 		"void main() {\n"
-		"	float dt = min(1.0, vert_dt);\n"
-		"	float scale = 2.7182818 * exp(-1.0/(1.0 - dt));\n"
 		"	vec4 color = texture(unif_color, vert_uv);\n"
-		"	frag_color = scale * color;\n"
+		"	frag_color = vert_scale * color;\n"
 		"}\n\0"sv
 	};
 	if (!shader.ok()) goto fail;
@@ -200,7 +199,8 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 
 		float vdata[] = {
 			0.0f, 0.0f, 0.0f, 0.0f,
-			1.0f, 0.0f, 1.0f, 0.0f,
+			// (1-A)v+Au to spread the cone over a larger area (framerate dependent)
+			6.0f,-5.0f, 1.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 1.0f,
 		};
 		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
@@ -209,7 +209,7 @@ render::render(glm::vec2 campos, glm::vec2 camdim)
 	}
 
 	{
-		unsigned char fill[4] = { 0xf2, 0xde, 0xe3, 0x20 };
+		unsigned char fill[4] = { 0xf2, 0xde, 0xe3, 0x80 };
 		image img;
 		img.base = fill;
 		img.width = 1;
@@ -301,6 +301,7 @@ void render::draw()
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		} else {
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "now"), now);
+			glUniform1f(glGetUniformLocation(this_draw.shader.id, "max_dt"), 0.3f);
 			for (auto &[e, data] : trails.trailing_) {
 				const auto to_end = (TRAIL_MAX_SEGMENTS-data.insert);
 				const auto from_start = data.insert;

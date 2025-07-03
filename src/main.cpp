@@ -21,7 +21,22 @@ render::per_entity tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
 	return {{{ u, v, origin }}};
 }
 
-void player_control(window const &win, render &rdr, render::entity player, float dt)
+render::entity spawn_slash(render &rdr, tick &tick, render::entity player, render::entity target)
+{
+	const auto pos = rdr.access(player)->pos() + glm::vec2{0.5f,0.0f};
+	const auto cone = rdr.spawn(render::object::attack_cone, quad_transform(pos, {0.0f,0.0f}));
+	const auto trail = rdr.spawn(render::object::trail, render::per_entity{});
+	const float lifetime = 0.2f;
+	tick.expire_in(cone, {lifetime});
+	tick.expire_in(trail, {lifetime});
+	tick.spin(cone, {{0.5f, 0.2f}});
+	tick.collide_test(cone, {target});
+	rdr.add_trail(trail, cone);
+	return cone;
+}
+
+render::entity player_control(window const &win, render &rdr, tick &tick,
+		render::entity attack, render::entity target, render::entity player, float dt)
 {
 	const auto handle = win.get_handle();
 	glm::vec2 offset{ 0.0f, 0.0f };
@@ -42,6 +57,9 @@ void player_control(window const &win, render &rdr, render::entity player, float
 	}
 	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(handle, true);
+	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !rdr.access(attack))
+		attack = spawn_slash(rdr, tick, player, target);
+	return attack;
 }
 
 int main()
@@ -54,21 +72,15 @@ int main()
 	tick tick{rdr};
 	const auto player = rdr.spawn(render::object::player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
 	const auto enemy  = rdr.spawn(render::object::enemy , quad_transform({ 0.6f, 0.2f}, {0.5f,0.5f}));
-	const auto cone = rdr.spawn(render::object::attack_cone, tri_transform({ 0.3f,-0.1f}, {0.4f,0.1f}, {-0.1f,0.4f}));
-	const auto cone_trail = rdr.spawn(render::object::trail, render::per_entity{});
-	tick.expire_in(cone, {10.0f});
 	tick.follow(enemy, {player});
-	tick.spin(cone, {{0.4f, 0.1f}});
-	tick.collide_test(cone, {enemy});
-	rdr.add_trail(cone_trail, cone);
-	tick.expire_in(cone_trail, {10.0f});
+	render::entity attack = 0;
 
 	auto prev_time = glfwGetTime();
 	while (win.live()) {
 		const auto now = glfwGetTime();
 		const auto dt = now - prev_time;
 		prev_time = now;
-		player_control(win, rdr, player, dt);
+		attack = player_control(win, rdr, tick, attack, enemy, player, dt);
 		tick.update(dt);
 		rdr.draw();
 		win.draw();

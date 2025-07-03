@@ -51,7 +51,7 @@ void tick::update(float dt)
 		const auto speed = 0.03f;
 		cur->pos() += dt * speed * dir;
 	}
-	const auto speed = 5.0f;
+	const auto speed = 15.0f;
 	// Rcos(A+B)=(RcosA)cosB-(RsinA)sinB
 	// Rsin(A+B)=(RcosA)sinB+(RsinA)cosB
 	// this accumulates errors but it is fine because
