@@ -179,6 +179,15 @@ void phys::clear()
 	colliding.clear();
 }
 
+static void collision(std::unordered_map<entity, std::uint32_t> *map, entity e, std::uint32_t ibit)
+{
+	const auto mask = std::uint32_t{1u}<<ibit;
+	auto [at, inserted] = map->emplace(e, mask);
+	if (!inserted) {
+		at->second |= mask;
+	}
+}
+
 void phys::update(float, float dt)
 {
 	colliding.clear();
@@ -187,24 +196,24 @@ void phys::update(float, float dt)
 		if (col1.mask & (1zu<<triangle::bit)) {
 			for (auto &[e2, col2] : triangle_) {
 				if (collision_test(col1, col2)) {
-					colliding.emplace(e1);
-					colliding.emplace(e2);
+					collision(&colliding, e1, triangle::bit);
+					collision(&colliding, e2, circle::bit);
 				}
 			}
 		}
 		if (col1.mask & (1zu<<ray::bit)) {
 			for (auto &[e2, col2] : ray_) {
 				if (collision_test(col1, col2).has_intersection) {
-					colliding.emplace(e1);
-					colliding.emplace(e2);
+					collision(&colliding, e1, ray::bit);
+					collision(&colliding, e2, circle::bit);
 				}
 			}
 		}
 		if (col1.mask & (1zu<<wall_mesh::bit)) {
 			for (auto &[e2, col2] : wall_mesh_) {
 				if (collision_test(col1, col2)) {
-					colliding.emplace(e1);
-					colliding.emplace(e2);
+					collision(&colliding, e1, wall_mesh::bit);
+					collision(&colliding, e2, circle::bit);
 				}
 			}
 		}
@@ -213,8 +222,8 @@ void phys::update(float, float dt)
 		if (col1.mask & (1zu<<circle::bit)) {
 			for (auto &[e2, col2] : circle_) {
 				if (collision_test(col2, col1)) {
-					colliding.emplace(e1);
-					colliding.emplace(e2);
+					collision(&colliding, e1, circle::bit);
+					collision(&colliding, e2, triangle::bit);
 				}
 			}
 		}
@@ -222,8 +231,8 @@ void phys::update(float, float dt)
 			// approximate tests assuming small triangles
 			for (auto &[e2, col2] : ray_) {
 				if (collision_test(ray{col1.origin, col1.u}, col2)) {
-					colliding.emplace(e1);
-					colliding.emplace(e2);
+					collision(&colliding, e1, ray::bit);
+					collision(&colliding, e2, triangle::bit);
 				}
 			}
 		}

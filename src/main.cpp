@@ -75,6 +75,7 @@ phobos::entity spawn_enemy(phobos::entity player, glm::vec2 pos)
 	ng.render.drawable(enemy, phobos::render::object::enemy);
 	ng.phys.collider_circle(enemy, 0);
 	ng.tick.follow(enemy, {player});
+	ng.hp.damageable(enemy, 3.0f);
 	return enemy;
 }
 

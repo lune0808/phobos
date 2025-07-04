@@ -4,6 +4,7 @@
 #include "tick.hpp"
 #include "phys.hpp"
 #include "transform.hpp"
+#include "health.hpp"
 
 namespace phobos {
 
@@ -11,6 +12,7 @@ namespace phobos {
 	X(tick) /* tick decides if entities are live for this frame so it is always first */ \
 	X(tfms) \
 	X(phys) \
+	X(hp) \
 	X(render) \
 
 

@@ -91,7 +91,7 @@ struct phys
 	glm::vec2 *get_speed(entity e);
 	void update_colliders();
 
-	std::unordered_set<entity> colliding;
+	std::unordered_map<entity, std::uint32_t> colliding;
 
 	int init();
 	void fini();
