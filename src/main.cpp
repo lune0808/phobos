@@ -16,6 +16,13 @@ phobos::transform quad_transform(glm::vec2 origin, glm::vec2 dims)
 	return tri_transform(origin, {dims.x,0.0f}, {0.0f,dims.y});
 }
 
+phobos::entity cooldown(float seconds)
+{
+	const auto cd = phobos::spawn();
+	ng.tick.expire_in(cd, {seconds});
+	return cd;
+}
+
 phobos::entity spawn_slash(phobos::entity player)
 {
 	const auto pos = ng.tfms.get(player)->pos() + glm::vec2{0.55f,0.0f};
@@ -31,7 +38,7 @@ phobos::entity spawn_slash(phobos::entity player)
 	ng.tick.spin(cone, {{0.2f,-0.4f}});
 	ng.render.trailable(trail, cone);
 	ng.phys.collider_triangle(cone, phobos::phys::mask_v<phobos::circle>);
-	return cone;
+	return cooldown(0.5f);
 }
 
 phobos::entity player_control(window const &win, phobos::entity attack, phobos::entity player, float dt)
@@ -55,7 +62,7 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 	}
 	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(handle, true);
-	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !ng.tfms.get(attack))
+	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !ng.tick.live(attack))
 		attack = spawn_slash(player);
 	return attack;
 }

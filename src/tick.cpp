@@ -11,6 +11,11 @@ void tick::expire_in(entity e, expire_in_t data)
 	assert(inserted);
 }
 
+bool tick::live(entity e)
+{
+	return expiring_.find(e) != expiring_.end();
+}
+
 void tick::follow(entity e, follow_t data)
 {
 	auto [_, inserted] = following_.emplace(e, data);

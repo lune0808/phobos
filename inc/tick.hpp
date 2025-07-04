@@ -21,6 +21,7 @@ public:
 	void clear();
 
 	void expire_in(entity e, expire_in_t data);
+	bool live(entity e);
 	void follow(entity e, follow_t data);
 	void spin(entity e, spin_t data);
 };
