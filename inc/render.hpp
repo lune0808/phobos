@@ -43,6 +43,7 @@ private:
 
 	per_draw ctx[NUM];
 	std::unordered_set<entity> drawing_[NUM];
+	GLuint attack_cone_mesh_vb;
 
 	struct quad {
 		glm::vec2 base;

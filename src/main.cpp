@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <string_view>
+#include <print>
 
 inline auto &ng = phobos::system;
 
@@ -92,17 +93,20 @@ int main()
 	const auto e1 = spawn_enemy(player, {+0.6f,+0.2f});
 	const auto e2 = spawn_enemy(player, {+0.9f,-0.5f});
 
+	std::print("\n");
 	auto prev_time = glfwGetTime();
 	while (win.live()) {
 		const auto now = glfwGetTime();
 		const auto dt = now - prev_time;
 		prev_time = now;
 		attack = player_control(win, attack, player, dt);
+		std::print("\rframe time: {:4.1f}ms fps: {:3.1f}s-1", dt * 1e3, 1.0f / dt);
 		phobos::update(now, dt);
 		win.draw();
 	}
 	phobos::clear();
 	phobos::fini();
+	std::print("\n");
 }
 
 

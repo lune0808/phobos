@@ -11,7 +11,12 @@ namespace phobos {
 
 static constexpr size_t MAX_TRAILS = 16zu;
 
-static GLuint describe_layout_f2f2(void *data, size_t size)
+struct vavb {
+	GLuint va;
+	GLuint vb;
+};
+
+static vavb describe_layout_f2f2(void *data, size_t size, GLenum usage)
 {
 	GLuint va;
 	glGenVertexArrays(1, &va);
@@ -19,13 +24,13 @@ static GLuint describe_layout_f2f2(void *data, size_t size)
 	GLuint vb;
 	glGenBuffers(1, &vb);
 	glBindBuffer(GL_ARRAY_BUFFER, vb);
-	glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, size, data, usage);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(0*sizeof(float)));
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
 	glEnableVertexAttribArray(1);
 	glBindVertexArray(0);
-	return va;
+	return {va, vb};
 }
 
 struct trail_buffers {
@@ -171,7 +176,7 @@ int render::init()
 			-0.5f, +0.5f, 0.0f, 1.0f,
 			-0.5f, -0.5f, 0.0f, 0.0f,
 		};
-		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, GL_STATIC_DRAW).va;
 		ctx[player] = per_draw{ va, shader, tex, 6 };
 		++ok;
 	}
@@ -190,7 +195,7 @@ int render::init()
 			-0.5f, +0.5f, 0.0f, 1.0f,
 			-0.5f, -0.5f, 0.0f, 0.0f,
 		};
-		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, GL_STATIC_DRAW).va;
 		ctx[enemy] = per_draw{ va, shader, tex, 6 };
 		++ok;
 	}
@@ -206,12 +211,13 @@ int render::init()
 
 		float vdata[] = {
 			0.0f, 0.0f, 0.0f, 0.0f,
-			// (1-A)v+Au to spread the cone over a larger area (framerate dependent)
-			6.0f,-5.0f, 1.0f, 0.0f,
+			// filled in at draw time
+			0.0f, 0.0f, 1.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 1.0f,
 		};
-		GLuint va = describe_layout_f2f2(vdata, sizeof vdata);
-		ctx[attack_cone] = per_draw{ va, shader, tex, 3 };
+		const auto bos = describe_layout_f2f2(vdata, sizeof vdata, GL_DYNAMIC_DRAW);
+		ctx[attack_cone] = per_draw{ bos.va, shader, tex, 3 };
+		attack_cone_mesh_vb = bos.vb;
 		++ok;
 	}
 
@@ -260,7 +266,7 @@ void render::clear()
 	trails.trailing_.clear();
 }
 
-void render::update(float now, float)
+void render::update(float now, float dt)
 {
 	for (const auto e : on_hold()) {
 		for (size_t obj = 0; obj < NUM; ++obj) {
@@ -299,6 +305,13 @@ void render::update(float now, float)
 					1, GL_FALSE, glm::value_ptr(model));
 			const auto red_shift = system.phys.colliding.contains(e)? 0.3f: 0.0f;
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
+			if (obj == attack_cone) {
+				const float scale = 1e-2 / dt;
+				// (1-A)v+Au to spread the cone over a larger area
+				const glm::vec2 slash_tail{ scale, 1.0f - scale };
+				glBindBuffer(GL_ARRAY_BUFFER, attack_cone_mesh_vb);
+				glBufferSubData(GL_ARRAY_BUFFER, sizeof(float[4]), sizeof slash_tail, &slash_tail);
+			}
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		} else {
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "now"), now);
