@@ -156,11 +156,42 @@ int render::init()
 		"	frag_color = vert_scale * color;\n"
 		"}\n\0"sv
 	};
+	trail_shader.bind();
+	glUniformMatrix3fv(glGetUniformLocation(trail_shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
+
+	shader_pipeline hp_shader{
+		"#version 410 core\n"
+		"layout(location=0) in vec2 attr_pos;\n"
+		"layout(location=1) in vec2 attr_uv;\n"
+		"out vec2 vert_uv;\n"
+		"out float vert_x_prog;\n"
+		"uniform mat3 unif_view;\n"
+		"uniform mat3 unif_model;\n"
+		"void main() {\n"
+			"vert_uv = attr_uv;\n"
+			"vert_x_prog = attr_pos.x + 0.5;\n"
+			"vec3 pos = unif_view * unif_model * vec3(attr_pos, 1.0);\n"
+			"gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
+		"}\n\0"sv,
+
+		"#version 410 core\n"
+		"in vec2 vert_uv;\n"
+		"in float vert_x_prog;\n"
+		"out vec4 frag_color;\n"
+		"uniform sampler2D unif_color;\n"
+		"uniform float unif_fullness;\n"
+		"void main() {\n"
+		"	vec2 uv = (unif_fullness > vert_x_prog)? vert_uv: 0.5 + vert_uv;\n"
+		"	vec4 color = texture(unif_color, uv);\n"
+		"	frag_color = color;\n"
+		"}\n\0"
+	};
+	hp_shader.bind();
+	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(id));
+	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
 	if (!shader.ok()) goto fail;
 	if (!trail_shader.ok()) goto fail;
-	trail_shader.bind();
-	glUniformMatrix3fv(glGetUniformLocation(trail_shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(id));
-	glUniformMatrix3fv(glGetUniformLocation(trail_shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
+	if (!hp_shader.ok()) goto fail;
 
 	{
 		image img{"res/basic.png\0"sv};
@@ -236,6 +267,25 @@ int render::init()
 		++ok;
 	}
 
+	{
+		image img{"res/hp_bar.png\0"sv};
+		if (!img.ok()) goto fail;
+		texture tex{img, hp_shader, "unif_color\0"sv};
+		img.fini();
+
+		float vdata[] = {
+			-0.5f, -0.5f, 0.0f, 0.0f,
+			+0.5f, -0.5f, 0.5f, 0.0f,
+			+0.5f, +0.5f, 0.5f, 0.5f,
+			+0.5f, +0.5f, 0.5f, 0.5f,
+			-0.5f, +0.5f, 0.0f, 0.5f,
+			-0.5f, -0.5f, 0.0f, 0.0f,
+		};
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, GL_STATIC_DRAW).va;
+		ctx[hp_bar] = per_draw{ va, hp_shader, tex, 6 };
+		++ok;
+	}
+
 	if (ok == NUM)
 		return 0;
 fail:
@@ -275,9 +325,9 @@ void render::update(float now, float dt)
 		trails.trailing_.erase(e);
 	}
 	for (auto &[e, data] : trails.trailing_) {
-		const auto ref = system.tfms.get(e);
-		data.buf[data.insert].base = ref->pos();
-		data.buf[data.insert].offs = ref->pos() + ref->y();
+		auto ref = system.tfms.world(e);
+		data.buf[data.insert].base = ref.pos();
+		data.buf[data.insert].offs = ref.pos() + ref.y();
 		data.timestamp[data.insert] = glm::vec2{now, now};
 		data.insert = (data.insert+1) % TRAIL_MAX_SEGMENTS;
 	}
@@ -295,7 +345,7 @@ void render::update(float now, float dt)
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
 		if (obj != trail) for (const auto e: drawing_[obj]) {
-			auto &this_entity = *system.tfms.get(e);
+			auto this_entity = system.tfms.world(e);
 			const glm::mat3 model{
 				glm::vec3{this_entity.  x(), 0.0f},
 				glm::vec3{this_entity.  y(), 0.0f},
@@ -311,6 +361,10 @@ void render::update(float now, float dt)
 				const glm::vec2 slash_tail{ scale, 1.0f - scale };
 				glBindBuffer(GL_ARRAY_BUFFER, attack_cone_mesh_vb);
 				glBufferSubData(GL_ARRAY_BUFFER, sizeof(float[4]), sizeof slash_tail, &slash_tail);
+			} else if (obj == hp_bar) {
+				const auto parent = system.tfms.referential(e)->parent;
+				const auto hp = system.hp.living_.find(parent)->second;
+				glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_fullness"), hp.current / hp.max);
 			}
 			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
 		} else {

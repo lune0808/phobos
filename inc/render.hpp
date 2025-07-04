@@ -20,6 +20,7 @@ public:
 		enemy,
 		attack_cone,
 		player,
+		hp_bar,
 		// wall_mesh :
 		// offline, build a triangle (inside) mesh describing
 		// where you can walk, ordered so that vertices i,i+1modN

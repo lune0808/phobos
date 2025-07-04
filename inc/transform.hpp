@@ -10,6 +10,9 @@ struct transform : glm::mat3x2
 	glm::vec2 &pos();
 	glm::vec2 &  x();
 	glm::vec2 &  y();
+	friend transform operator*(transform l, transform r);
+
+	entity parent;
 };
 
 struct tfms
@@ -22,7 +25,8 @@ struct tfms
 	std::unordered_map<entity, transform> data;
 
 	void transformable(entity e, transform tfm);
-	transform *get(entity e);
+	transform *referential(entity e);
+	transform world(entity e);
 };
 
 } // phobos

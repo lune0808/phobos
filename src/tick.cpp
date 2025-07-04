@@ -57,9 +57,9 @@ void tick::update(float, float dt)
 		spinning_.erase(e);
 	}
 	for (auto &[e, data] : following_) {
-		const auto cur = system.tfms.get(e);
-		const auto tgt = system.tfms.get(data.target);
-		const auto delta = tgt->pos() - cur->pos();
+		auto cur = system.tfms.referential(e);
+		auto tgt = system.tfms.world(data.target);
+		const auto delta = tgt.pos() - cur->pos();
 		if (glm::length2(delta) < 1e-3)
 			continue;
 		const auto dir = glm::normalize(delta);
@@ -79,7 +79,7 @@ void tick::update(float, float dt)
 		const auto sin_next = data.state.x * sin_dtheta
 			            + data.state.y * cos_dtheta;
 		const auto state_next = glm::vec2{cos_next, sin_next};
-		const auto cur = system.tfms.get(e);
+		auto cur = system.tfms.referential(e);
 		cur->x() = data.state;
 		cur->y() = state_next;
 		data.state = state_next;

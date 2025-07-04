@@ -7,14 +7,14 @@
 
 inline auto &ng = phobos::system;
 
-phobos::transform tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v)
+phobos::transform tri_transform(glm::vec2 origin, glm::vec2 u, glm::vec2 v, phobos::entity parent = 0)
 {
-	return {{ u, v, origin }};
+	return {{ u, v, origin }, parent};
 }
 
-phobos::transform quad_transform(glm::vec2 origin, glm::vec2 dims)
+phobos::transform quad_transform(glm::vec2 origin, glm::vec2 dims, phobos::entity parent = 0)
 {
-	return tri_transform(origin, {dims.x,0.0f}, {0.0f,dims.y});
+	return tri_transform(origin, {dims.x,0.0f}, {0.0f,dims.y}, parent);
 }
 
 phobos::entity cooldown(float seconds)
@@ -26,12 +26,11 @@ phobos::entity cooldown(float seconds)
 
 phobos::entity spawn_slash(phobos::entity player)
 {
-	const auto pos = ng.tfms.get(player)->pos() + glm::vec2{0.55f,0.0f};
 	const auto cone = phobos::spawn();
 	const auto trail = phobos::spawn();
 	ng.render.drawable(cone, phobos::render::object::attack_cone);
 	ng.render.drawable(trail, phobos::render::object::trail);
-	ng.tfms.transformable(cone, quad_transform(pos, {0.0f,0.0f}));
+	ng.tfms.transformable(cone, quad_transform({0.55f,0.0f}, {1.0f,1.0f}, player));
 	ng.tfms.transformable(trail, {});
 	const float lifetime = 0.2f;
 	ng.tick.expire_in(cone, {lifetime});
@@ -57,7 +56,7 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 	if (glm::length2(offset) > 0.5f) {
 		const auto speed = 0.5f;
 		offset = dt * speed * glm::normalize(offset);
-		const auto tfm = ng.tfms.get(player);
+		const auto tfm = ng.tfms.referential(player);
 		tfm->pos() += offset;
 		ng.render.camera.pos -= offset;
 	}
@@ -76,6 +75,9 @@ phobos::entity spawn_enemy(phobos::entity player, glm::vec2 pos)
 	ng.phys.collider_circle(enemy, 0);
 	ng.tick.follow(enemy, {player});
 	ng.hp.damageable(enemy, 3.0f);
+	const auto hp_bar = phobos::spawn();
+	ng.render.drawable(hp_bar, phobos::render::object::hp_bar);
+	ng.tfms.transformable(hp_bar, quad_transform({0.0f,1.0f}, {1.0f,0.2f}, enemy));
 	return enemy;
 }
 
@@ -101,7 +103,7 @@ int main()
 		const auto dt = now - prev_time;
 		prev_time = now;
 		attack = player_control(win, attack, player, dt);
-		std::print("\rframe time: {:4.1f}ms fps: {:3.1f}s-1", dt * 1e3, 1.0f / dt);
+		std::print("\rframe time: {:#4.1f}ms fps: {:#3.1f}s-1         ", dt * 1e3, 1.0f / dt);
 		phobos::update(now, dt);
 		win.draw();
 	}
