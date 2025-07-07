@@ -5,12 +5,14 @@
 #include "phys.hpp"
 #include "transform.hpp"
 #include "health.hpp"
+#include "enemy.hpp"
 
 namespace phobos {
 
 #define PHOBOS_SYSTEMS(X) \
 	X(tick) /* tick decides if entities are live for this frame so it is always first */ \
 	X(tfms) \
+	X(enemy) \
 	X(phys) \
 	X(hp) \
 	X(render) \

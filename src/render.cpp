@@ -16,7 +16,7 @@ struct vavb {
 	GLuint vb;
 };
 
-static vavb describe_layout_f2f2(void *data, size_t size, GLenum usage)
+static vavb describe_layout_f2f2(void *vdata, size_t vsize, GLuint *idata, size_t isize, GLenum usage)
 {
 	GLuint va;
 	glGenVertexArrays(1, &va);
@@ -24,11 +24,15 @@ static vavb describe_layout_f2f2(void *data, size_t size, GLenum usage)
 	GLuint vb;
 	glGenBuffers(1, &vb);
 	glBindBuffer(GL_ARRAY_BUFFER, vb);
-	glBufferData(GL_ARRAY_BUFFER, size, data, usage);
+	glBufferData(GL_ARRAY_BUFFER, vsize, vdata, usage);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(0*sizeof(float)));
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
 	glEnableVertexAttribArray(1);
+	GLuint ib;
+	glGenBuffers(1, &ib);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, isize, idata, GL_STATIC_DRAW);
 	glBindVertexArray(0);
 	return {va, vb};
 }
@@ -203,12 +207,14 @@ int render::init()
 			-0.5f, -0.5f, 0.0f, 0.0f,
 			+0.5f, -0.5f, 1.0f, 0.0f,
 			+0.5f, +0.5f, 1.0f, 1.0f,
-			+0.5f, +0.5f, 1.0f, 1.0f,
 			-0.5f, +0.5f, 0.0f, 1.0f,
-			-0.5f, -0.5f, 0.0f, 0.0f,
 		};
-		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, GL_STATIC_DRAW).va;
-		ctx[player] = per_draw{ va, shader, tex, 6 };
+		GLuint idata[] = {
+			0, 1, 2,
+			2, 3, 0,
+		};
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, idata, sizeof idata, GL_STATIC_DRAW).va;
+		ctx[player] = per_draw{ va, shader, tex, std::size(idata) };
 		++ok;
 	}
 
@@ -222,12 +228,14 @@ int render::init()
 			-0.5f, -0.5f, 0.0f, 0.0f,
 			+0.5f, -0.5f, 1.0f, 0.0f,
 			+0.5f, +0.5f, 1.0f, 1.0f,
-			+0.5f, +0.5f, 1.0f, 1.0f,
 			-0.5f, +0.5f, 0.0f, 1.0f,
-			-0.5f, -0.5f, 0.0f, 0.0f,
 		};
-		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, GL_STATIC_DRAW).va;
-		ctx[enemy] = per_draw{ va, shader, tex, 6 };
+		GLuint idata[] = {
+			0, 1, 2,
+			2, 3, 0,
+		};
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, idata, sizeof idata, GL_STATIC_DRAW).va;
+		ctx[enemy] = per_draw{ va, shader, tex, std::size(idata) };
 		++ok;
 	}
 
@@ -243,11 +251,14 @@ int render::init()
 		float vdata[] = {
 			0.0f, 0.0f, 0.0f, 0.0f,
 			// filled in at draw time
-			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 1.0f,
 			0.0f, 1.0f, 0.0f, 1.0f,
 		};
-		const auto bos = describe_layout_f2f2(vdata, sizeof vdata, GL_DYNAMIC_DRAW);
-		ctx[attack_cone] = per_draw{ bos.va, shader, tex, 3 };
+		GLuint idata[] = {
+			0, 1, 2,
+		};
+		const auto bos = describe_layout_f2f2(vdata, sizeof vdata, idata, sizeof idata, GL_DYNAMIC_DRAW);
+		ctx[attack_cone] = per_draw{ bos.va, shader, tex, std::size(idata) };
 		attack_cone_mesh_vb = bos.vb;
 		++ok;
 	}
@@ -277,12 +288,14 @@ int render::init()
 			-0.5f, -0.5f, 0.0f, 0.0f,
 			+0.5f, -0.5f, 0.5f, 0.0f,
 			+0.5f, +0.5f, 0.5f, 0.5f,
-			+0.5f, +0.5f, 0.5f, 0.5f,
 			-0.5f, +0.5f, 0.0f, 0.5f,
-			-0.5f, -0.5f, 0.0f, 0.0f,
 		};
-		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, GL_STATIC_DRAW).va;
-		ctx[hp_bar] = per_draw{ va, hp_shader, tex, 6 };
+		GLuint idata[] = {
+			0, 1, 2,
+			2, 3, 0,
+		};
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, idata, sizeof idata, GL_STATIC_DRAW).va;
+		ctx[hp_bar] = per_draw{ va, hp_shader, tex, std::size(idata) };
 		++ok;
 	}
 
@@ -366,7 +379,7 @@ void render::update(float now, float dt)
 				const auto hp = system.hp.living_.find(parent)->second;
 				glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_fullness"), hp.current / hp.max);
 			}
-			glDrawArrays(GL_TRIANGLES, 0, this_draw.tricount);
+			glDrawElements(GL_TRIANGLES, this_draw.tricount, GL_UNSIGNED_INT, nullptr);
 		} else {
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "now"), now);
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "max_dt"), 0.3f);
