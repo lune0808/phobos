@@ -52,7 +52,7 @@ static transition_t transition(enemy::state_t cur, dumb0_event evt)
 		{
 			{ enemy::state_t::combat_idle, 0.1f },
 			{ enemy::state_t::combat_idle, 0.1f },
-			{ enemy::state_t::combat_attack, 0.4f },
+			{ enemy::state_t::combat_attack, 0.2f },
 			{ enemy::state_t::combat_idle, 0.2f },
 		},
 	};
@@ -61,12 +61,19 @@ static transition_t transition(enemy::state_t cur, dumb0_event evt)
 
 static void spawn_slash(glm::vec2 dir, entity en)
 {
-	static const float lifetime = 0.2f;
+	const auto at = 0.51f * dir;
+	const auto angle = glm::radians(-80.0f);
+	const auto cos = std::cos(angle);
+	const auto sin = std::sin(angle);
+	const auto swing = 0.6f/0.5f * glm::vec2{cos*dir.x - sin*dir.y, sin*dir.x + cos*dir.y};
+	const auto speed = 3.5f;
+	const auto lifetime = (glm::radians(+82.0f)-angle) / speed;
+
 	const auto cone = spawn();
 	system.render.drawable(cone, render::attack_cone);
-	system.tfms.transformable(cone, {{{1.0f,0.0f},{0.0f,1.0f},0.5f*dir}, en});
+	system.tfms.transformable(cone, {{swing, swing, at}, en});
 	system.tick.expire_in(cone, {lifetime});
-	system.tick.spin(cone, {0.6f / 0.5f * dir});
+	system.tick.spin(cone, {swing, speed});
 	system.phys.collider_triangle(cone, phys::mask_v<circle>);
 	const auto trail = spawn();
 	system.render.drawable(cone, render::trail);
@@ -91,7 +98,7 @@ void enemy::update(float, float dt)
 			+ 0.5f  // player radius
 			+ 0.25f // enemy radius
 			+ 0.6f  // enemy slash size
-			- 0.2f  // margin
+			- 0.1f  // margin
 		;
 		const auto evt = (len2 < range*range) ? dumb0_event::player_close:
 				 (len2 < 5.0f * 5.0f) ? dumb0_event::player_visible:

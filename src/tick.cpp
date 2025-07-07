@@ -66,14 +66,14 @@ void tick::update(float, float dt)
 		const auto speed = 0.03f;
 		cur->pos() += dt * speed * dir;
 	}
-	const auto speed = 15.0f;
-	// Rcos(A+B)=(RcosA)cosB-(RsinA)sinB
-	// Rsin(A+B)=(RcosA)sinB+(RsinA)cosB
-	// this accumulates errors but it is fine because
-	// entities don't spin for a long time
-	const auto cos_dtheta = std::cos(speed * dt);
-	const auto sin_dtheta = std::sin(speed * dt);
 	for (auto &[e, data] : spinning_) {
+		// Rcos(A+B)=(RcosA)cosB-(RsinA)sinB
+		// Rsin(A+B)=(RcosA)sinB+(RsinA)cosB
+		// this accumulates errors but it is fine because
+		// entities don't spin for a long time
+		const auto speed = data.speed;
+		const auto cos_dtheta = std::cos(speed * dt);
+		const auto sin_dtheta = std::sin(speed * dt);
 		const auto cos_next = data.state.x * cos_dtheta
 			            - data.state.y * sin_dtheta;
 		const auto sin_next = data.state.x * sin_dtheta

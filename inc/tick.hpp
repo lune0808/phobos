@@ -9,7 +9,7 @@ class tick
 public:
 	struct expire_in_t { float remaining; };
 	struct follow_t { entity target; };
-	struct spin_t { glm::vec2 state; };
+	struct spin_t { glm::vec2 state; float speed; };
 private:
 	std::unordered_map<entity, expire_in_t> expiring_;
 	std::unordered_map<entity, follow_t> following_;

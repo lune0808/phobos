@@ -35,7 +35,7 @@ phobos::entity spawn_slash(phobos::entity player)
 	const float lifetime = 0.2f;
 	ng.tick.expire_in(cone, {lifetime});
 	ng.tick.expire_in(trail, {lifetime});
-	ng.tick.spin(cone, {{0.2f,-0.4f}});
+	ng.tick.spin(cone, {{0.2f,-0.4f}, 15.0f});
 	ng.render.trailable(trail, cone);
 	ng.phys.collider_triangle(cone, phobos::phys::mask_v<phobos::circle>);
 	return cooldown(0.5f);
@@ -54,7 +54,7 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 	if (glfwGetKey(handle, GLFW_KEY_A) == GLFW_PRESS)
 		offset.x -= 1.0f;
 	if (glm::length2(offset) > 0.5f) {
-		const auto speed = 0.5f;
+		const auto speed = 2.5f;
 		offset = dt * speed * glm::normalize(offset);
 		const auto tfm = ng.tfms.referential(player);
 		tfm->pos() += offset;
