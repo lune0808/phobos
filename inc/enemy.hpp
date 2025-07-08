@@ -15,6 +15,7 @@ struct enemy {
 		move,
 		combat_idle,
 		combat_attack,
+		combat_attack_cooldown,
 		NUM
 	};
 

@@ -42,18 +42,21 @@ static transition_t transition(enemy::state_t cur, dumb0_event evt)
 			{ enemy::state_t::idle, 0.1f },
 			{ enemy::state_t::idle, 0.1f },
 			{ enemy::state_t::idle, 0.1f },
+			{ enemy::state_t::idle, 0.1f },
 		},
 		{
 			{ enemy::state_t::move, 0.5f },
 			{ enemy::state_t::move, 0.5f },
-			{ enemy::state_t::move, 0.0f },
-			{ enemy::state_t::move, 0.2f },
+			{ enemy::state_t::move, 0.1f },
+			{ enemy::state_t::combat_attack_cooldown, 0.8f },
+			{ enemy::state_t::combat_idle, 0.5f },
 		},
 		{
 			{ enemy::state_t::combat_idle, 0.1f },
 			{ enemy::state_t::combat_idle, 0.1f },
 			{ enemy::state_t::combat_attack, 0.2f },
-			{ enemy::state_t::combat_idle, 0.2f },
+			{ enemy::state_t::combat_attack_cooldown, 0.8f },
+			{ enemy::state_t::combat_idle, 0.5f },
 		},
 	};
 	return tbl[static_cast<size_t>(evt)][static_cast<size_t>(cur)];
@@ -62,12 +65,12 @@ static transition_t transition(enemy::state_t cur, dumb0_event evt)
 static void spawn_slash(glm::vec2 dir, entity en)
 {
 	const auto at = 0.51f * dir;
-	const auto angle = glm::radians(-80.0f);
+	const auto angle = glm::radians(-100.0f);
 	const auto cos = std::cos(angle);
 	const auto sin = std::sin(angle);
 	const auto swing = 0.6f/0.5f * glm::vec2{cos*dir.x - sin*dir.y, sin*dir.x + cos*dir.y};
-	const auto speed = 3.5f;
-	const auto lifetime = (glm::radians(+82.0f)-angle) / speed;
+	const auto speed = 4.5f;
+	const auto lifetime = (glm::radians(+110.0f)-angle) / speed;
 
 	const auto cone = spawn();
 	system.render.drawable(cone, render::attack_cone);
