@@ -34,7 +34,7 @@ static phobos::key glfw2phoboskey(int key)
 	case GLFW_KEY_Z: return phobos::key::K_Z;
 	case GLFW_KEY_LEFT_BRACKET: return phobos::key::K_LEFT_SQUARE_BRACKET;
 	case GLFW_KEY_RIGHT_BRACKET: return phobos::key::K_RIGHT_SQUARE_BRACKET;
-	default: assert(false);
+	default: return phobos::key::K_NONE;
 	}
 }
 
@@ -51,6 +51,9 @@ int input::init()
 		(void) scan;
 		(void) mod;
 		const auto idx = static_cast<size_t>(glfw2phoboskey(key));
+		if (idx == 0)
+			// unhandled
+			return;
 		if (act == GLFW_PRESS) {
 			ref.held_state.set(idx, true);
 			ref.pressed_state.set(idx, true);
