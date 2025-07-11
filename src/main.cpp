@@ -45,13 +45,13 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 {
 	const auto handle = win.get_handle();
 	glm::vec2 offset{ 0.0f, 0.0f };
-	if (glfwGetKey(handle, GLFW_KEY_W) == GLFW_PRESS)
+	if (glfwGetKey(handle, GLFW_KEY_I) == GLFW_PRESS)
 		offset.y += 1.0f;
-	if (glfwGetKey(handle, GLFW_KEY_S) == GLFW_PRESS)
+	if (glfwGetKey(handle, GLFW_KEY_K) == GLFW_PRESS)
 		offset.y -= 1.0f;
-	if (glfwGetKey(handle, GLFW_KEY_D) == GLFW_PRESS)
+	if (glfwGetKey(handle, GLFW_KEY_L) == GLFW_PRESS)
 		offset.x += 1.0f;
-	if (glfwGetKey(handle, GLFW_KEY_A) == GLFW_PRESS)
+	if (glfwGetKey(handle, GLFW_KEY_J) == GLFW_PRESS)
 		offset.x -= 1.0f;
 	if (glm::length2(offset) > 0.5f) {
 		const auto speed = 2.5f;
