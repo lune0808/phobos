@@ -264,13 +264,10 @@ int render::init()
 	}
 
 	{
-		unsigned char fill[4] = { 0xf2, 0xde, 0xe3, 0x80 };
-		image img;
-		img.base = fill;
-		img.width = 1;
-		img.height = 1;
-		img.channels = 4;
+		image img{"res/slash.png\0"sv};
+		if (!img.ok()) goto fail;
 		texture tex{img, trail_shader, "unif_color\0"sv};
+		img.fini();
 		auto buf = describe_layout_trail(TRAIL_MAX_SEGMENTS);
 		ctx[trail] = per_draw{ buf.va, trail_shader, tex, (TRAIL_MAX_SEGMENTS-1)*6 };
 		trails.wpos = buf.wpos;
