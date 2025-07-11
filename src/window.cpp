@@ -11,8 +11,6 @@ void window::world_zoom(bool closer)
 	if (nexti < std::size(world_zoom_tbl)) {
 		iworld_zoom = nexti;
 	}
-
-	std::print("world zoom now {}", get_world_zoom());
 }
 
 float window::get_world_zoom() const

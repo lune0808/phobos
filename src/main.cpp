@@ -1,4 +1,3 @@
-#include "window.hpp"
 #include "system.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -44,25 +43,24 @@ phobos::entity spawn_slash(phobos::entity player)
 void win_control(window &win)
 {
 	const auto handle = win.get_handle();
-	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	if (ng.input.pressed(phobos::key::K_ESCAPE))
 		glfwSetWindowShouldClose(handle, true);
-	if (glfwGetKey(handle, GLFW_KEY_LEFT_BRACKET) == GLFW_PRESS)
+	if (ng.input.pressed(phobos::key::K_LEFT_SQUARE_BRACKET))
 		win.world_zoom(true);
-	if (glfwGetKey(handle, GLFW_KEY_RIGHT_BRACKET) == GLFW_PRESS)
+	if (ng.input.pressed(phobos::key::K_RIGHT_SQUARE_BRACKET))
 		win.world_zoom(false);
 }
 
-phobos::entity player_control(window const &win, phobos::entity attack, phobos::entity player, float dt)
+phobos::entity player_control(phobos::entity attack, phobos::entity player, float dt)
 {
-	const auto handle = win.get_handle();
 	glm::vec2 offset{ 0.0f, 0.0f };
-	if (glfwGetKey(handle, GLFW_KEY_I) == GLFW_PRESS)
+	if (ng.input.held(phobos::key::K_I))
 		offset.y += 1.0f;
-	if (glfwGetKey(handle, GLFW_KEY_K) == GLFW_PRESS)
+	if (ng.input.held(phobos::key::K_K))
 		offset.y -= 1.0f;
-	if (glfwGetKey(handle, GLFW_KEY_L) == GLFW_PRESS)
+	if (ng.input.held(phobos::key::K_L))
 		offset.x += 1.0f;
-	if (glfwGetKey(handle, GLFW_KEY_J) == GLFW_PRESS)
+	if (ng.input.held(phobos::key::K_J))
 		offset.x -= 1.0f;
 	if (glm::length2(offset) > 0.5f) {
 		const auto speed = 2.5f;
@@ -71,7 +69,7 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 		tfm->pos() += offset;
 		ng.render.camera_pos -= offset;
 	}
-	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !ng.tick.live(attack))
+	if (ng.input.pressed(phobos::key::K_F) && !ng.tick.live(attack))
 		attack = spawn_slash(player);
 	return attack;
 }
@@ -106,15 +104,15 @@ int main()
 
 	std::print("\n");
 	auto prev_time = glfwGetTime();
-	while (ng.render.win.live()) {
+	while (ng.input.win.live()) {
 		const auto now = glfwGetTime();
 		const auto dt = now - prev_time;
 		prev_time = now;
-		win_control(ng.render.win);
-		attack = player_control(ng.render.win, attack, player, dt);
+		win_control(ng.input.win);
+		attack = player_control(attack, player, dt);
 		std::print("\rframe time: {:#4.1f}ms fps: {:#3.1f}s-1         ", dt * 1e3, 1.0f / dt);
 		phobos::update(now, dt);
-		ng.render.win.draw();
+		ng.input.win.draw();
 	}
 	phobos::clear();
 	phobos::fini();

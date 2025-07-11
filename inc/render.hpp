@@ -66,7 +66,6 @@ private:
 
 public:
 	glm::vec2 camera_pos;
-	window win;
 
 	void drawable(entity e, object type);
 	void trailable(entity e, entity ref);

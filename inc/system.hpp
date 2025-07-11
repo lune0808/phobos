@@ -6,16 +6,19 @@
 #include "transform.hpp"
 #include "health.hpp"
 #include "enemy.hpp"
+#include "input.hpp"
 
 namespace phobos {
 
 #define PHOBOS_SYSTEMS(X) \
+	X(input) \
 	X(tick) /* tick decides if entities are live for this frame so it is always first */ \
 	X(tfms) \
 	X(enemy) \
 	X(phys) \
 	X(hp) \
 	X(render) \
+	X(gl) \
 
 
 enum class system_id {

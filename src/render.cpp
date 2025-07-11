@@ -97,7 +97,6 @@ static trail_buffers describe_layout_trail(size_t segment_count)
 int render::init()
 {
 	using namespace std::literals;
-	win.init("Phobos\0"sv);
 	camera_pos.x = 0.0f;
 	camera_pos.y = 0.0f;
 	size_t ok = 0;
@@ -311,7 +310,6 @@ void render::fini()
 		ctx[obj].tex.fini();
 		ctx[obj].shader.fini();
 	}
-	win.fini();
 }
 
 void render::drawable(entity e, object type)
@@ -343,7 +341,7 @@ void render::update(float now, float dt)
 		data.timestamp[data.insert] = glm::vec2{now, now};
 		data.insert = (data.insert+1) % TRAIL_MAX_SEGMENTS;
 	}
-	const auto camera_dim_i = win.dims();
+	const auto camera_dim_i = system.input.win.dims();
 	const glm::vec2 camera_dim{static_cast<float>(camera_dim_i.x), static_cast<float>(camera_dim_i.y)};
 	const auto aspect_ratio = camera_dim.x / camera_dim.y;
 	// translate THEN scale, so the scale is also applied to the offsets
@@ -352,7 +350,7 @@ void render::update(float now, float dt)
 		{ 0.0f        , aspect_ratio               , 0.0f },
 		{ camera_pos.x, camera_pos.y * aspect_ratio, 1.0f },
 	};
-	const float world_zoom = win.get_world_zoom();
+	const float world_zoom = system.input.win.get_world_zoom();
 	for (size_t obj = 0; obj < NUM; ++obj) {
 		const auto &this_draw = ctx[obj];
 		this_draw.shader.bind();
