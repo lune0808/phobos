@@ -65,10 +65,8 @@ private:
 	} trails;
 
 public:
-	struct {
-		glm::vec2 pos;
-		glm::vec2 dim;
-	} camera;
+	glm::vec2 camera_pos;
+	window win;
 
 	void drawable(entity e, object type);
 	void trailable(entity e, entity ref);

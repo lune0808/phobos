@@ -41,6 +41,17 @@ phobos::entity spawn_slash(phobos::entity player)
 	return cooldown(0.5f);
 }
 
+void win_control(window &win)
+{
+	const auto handle = win.get_handle();
+	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(handle, true);
+	if (glfwGetKey(handle, GLFW_KEY_LEFT_BRACKET) == GLFW_PRESS)
+		win.world_zoom(true);
+	if (glfwGetKey(handle, GLFW_KEY_RIGHT_BRACKET) == GLFW_PRESS)
+		win.world_zoom(false);
+}
+
 phobos::entity player_control(window const &win, phobos::entity attack, phobos::entity player, float dt)
 {
 	const auto handle = win.get_handle();
@@ -58,10 +69,8 @@ phobos::entity player_control(window const &win, phobos::entity attack, phobos::
 		offset = dt * speed * glm::normalize(offset);
 		const auto tfm = ng.tfms.referential(player);
 		tfm->pos() += offset;
-		ng.render.camera.pos -= offset;
+		ng.render.camera_pos -= offset;
 	}
-	if (glfwGetKey(handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(handle, true);
 	if (glfwGetKey(handle, GLFW_KEY_F) == GLFW_PRESS && !ng.tick.live(attack))
 		attack = spawn_slash(player);
 	return attack;
@@ -85,8 +94,6 @@ int main()
 {
 	using namespace std::literals;
 	// TODO: use a NUL-terminated string type
-	window win{"Gaming\0"sv};
-	if (win.error()) return 1;
 	if (phobos::init() != phobos::system_id::none) return 1;
 	const auto player = phobos::spawn();
 	ng.render.drawable(player, phobos::render::object::player);
@@ -99,14 +106,15 @@ int main()
 
 	std::print("\n");
 	auto prev_time = glfwGetTime();
-	while (win.live()) {
+	while (ng.render.win.live()) {
 		const auto now = glfwGetTime();
 		const auto dt = now - prev_time;
 		prev_time = now;
-		attack = player_control(win, attack, player, dt);
+		win_control(ng.render.win);
+		attack = player_control(ng.render.win, attack, player, dt);
 		std::print("\rframe time: {:#4.1f}ms fps: {:#3.1f}s-1         ", dt * 1e3, 1.0f / dt);
 		phobos::update(now, dt);
-		win.draw();
+		ng.render.win.draw();
 	}
 	phobos::clear();
 	phobos::fini();

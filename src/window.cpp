@@ -1,9 +1,29 @@
 #include <print>
 #include "window.hpp"
 
-window::window(std::string_view title)
-	: handle(nullptr)
+static constexpr float world_zoom_tbl[] = {
+	0.05f, 0.07f, 0.09f, 0.12f, 0.15f, 0.18f, 0.22f, 0.26f, 0.30f, 0.35f, 0.40f, 0.45f, 0.50f, 0.66f, 0.72f, 0.79f, 0.85f, 0.93f, 1.00f
+};
+
+void window::world_zoom(bool closer)
 {
+	size_t nexti = closer? iworld_zoom+1: iworld_zoom-1;
+	if (nexti < std::size(world_zoom_tbl)) {
+		iworld_zoom = nexti;
+	}
+
+	std::print("world zoom now {}", get_world_zoom());
+}
+
+float window::get_world_zoom() const
+{
+	return world_zoom_tbl[iworld_zoom];
+}
+
+void window::init(std::string_view title)
+{
+	handle = nullptr;
+	iworld_zoom = std::size(world_zoom_tbl)/2;
 	if (!glfwInit()) return;
 	glfwSetErrorCallback([] (int err, const char *desc)
 	{
@@ -25,7 +45,7 @@ window::window(std::string_view title)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-window::~window()
+void window::fini()
 {
 	if (!handle) return;
 	glfwDestroyWindow(handle);

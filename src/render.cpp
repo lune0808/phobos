@@ -96,12 +96,11 @@ static trail_buffers describe_layout_trail(size_t segment_count)
 
 int render::init()
 {
-	camera.pos.x = 0.0f;
-	camera.pos.y = 0.0f;
-	camera.dim.x = 800.0f;
-	camera.dim.y = 600.0f;
-	size_t ok = 0;
 	using namespace std::literals;
+	win.init("Phobos\0"sv);
+	camera_pos.x = 0.0f;
+	camera_pos.y = 0.0f;
+	size_t ok = 0;
 	shader_pipeline shader{
 		"#version 410 core\n"
 		"layout(location=0) in vec2 attr_pos;\n"
@@ -109,9 +108,10 @@ int render::init()
 		"out vec2 vert_uv;\n"
 		"uniform mat3 unif_view;\n"
 		"uniform mat3 unif_model;\n"
+		"uniform float world_zoom;\n"
 		"void main() {\n"
 			"vert_uv = attr_uv;\n"
-			"vec3 pos = unif_view * unif_model * vec3(attr_pos, 1.0);\n"
+			"vec3 pos = world_zoom * unif_view * unif_model * vec3(attr_pos, 1.0);\n"
 			"gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
 		"}\n\0"sv,
 
@@ -140,13 +140,14 @@ int render::init()
 		"layout(location=2) in float attr_timestamp;\n"
 		"out vec2 vert_uv;\n"
 		"flat out float vert_scale;\n"
+		"uniform float world_zoom;\n"
 		"uniform float now;\n"
 		"uniform float max_dt;\n"
 		"uniform mat3 unif_view;\n"
 		"void main() {\n"
 		"	vert_uv = attr_uv;\n"
 		"	vert_scale = 1.0 - min(max_dt, now - attr_timestamp) / max_dt;\n"
-		"	vec3 pos = unif_view * vec3(attr_wpos, 1.0);\n"
+		"	vec3 pos = world_zoom * unif_view * vec3(attr_wpos, 1.0);\n"
 		"	gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
 		"}\n\0"sv,
 
@@ -310,6 +311,7 @@ void render::fini()
 		ctx[obj].tex.fini();
 		ctx[obj].shader.fini();
 	}
+	win.fini();
 }
 
 void render::drawable(entity e, object type)
@@ -341,19 +343,23 @@ void render::update(float now, float dt)
 		data.timestamp[data.insert] = glm::vec2{now, now};
 		data.insert = (data.insert+1) % TRAIL_MAX_SEGMENTS;
 	}
-	const auto aspect_ratio = camera.dim.x / camera.dim.y;
+	const auto camera_dim_i = win.dims();
+	const glm::vec2 camera_dim{static_cast<float>(camera_dim_i.x), static_cast<float>(camera_dim_i.y)};
+	const auto aspect_ratio = camera_dim.x / camera_dim.y;
 	// translate THEN scale, so the scale is also applied to the offsets
 	const glm::mat3 view{
 		{ 1.0f        , 0.0f                       , 0.0f },
 		{ 0.0f        , aspect_ratio               , 0.0f },
-		{ camera.pos.x, camera.pos.y * aspect_ratio, 1.0f },
+		{ camera_pos.x, camera_pos.y * aspect_ratio, 1.0f },
 	};
+	const float world_zoom = win.get_world_zoom();
 	for (size_t obj = 0; obj < NUM; ++obj) {
 		const auto &this_draw = ctx[obj];
 		this_draw.shader.bind();
 		this_draw.tex.bind(0);
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniform1f(glGetUniformLocation(this_draw.shader.id, "world_zoom"), world_zoom);
 		if (obj != trail) for (const auto e: drawing_[obj]) {
 			auto this_entity = system.tfms.world(e);
 			const glm::mat3 model{
