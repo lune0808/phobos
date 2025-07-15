@@ -14,6 +14,7 @@ struct enemy {
 		idle,
 		move,
 		combat_idle,
+		combat_attack_windup,
 		combat_attack,
 		combat_attack_cooldown,
 		NUM
@@ -24,6 +25,7 @@ struct enemy {
 		float elapsed;
 	};
 
+	std::unordered_map<entity, entity> attacks;
 	std::unordered_map<entity, enemy_t> enemy_[static_cast<size_t>(type_t::NUM)];
 	entity player;
 

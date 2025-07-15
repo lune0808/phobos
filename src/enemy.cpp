@@ -43,17 +43,20 @@ static transition_t transition(enemy::state_t cur, dumb0_event evt)
 			{ enemy::state_t::idle, 0.1f },
 			{ enemy::state_t::idle, 0.1f },
 			{ enemy::state_t::idle, 0.1f },
+			{ enemy::state_t::idle, 0.1f },
 		},
 		{
 			{ enemy::state_t::move, 0.5f },
 			{ enemy::state_t::move, 0.5f },
 			{ enemy::state_t::move, 0.1f },
+			{ enemy::state_t::combat_attack, 0.2f },
 			{ enemy::state_t::combat_attack_cooldown, 0.8f },
 			{ enemy::state_t::combat_idle, 0.5f },
 		},
 		{
 			{ enemy::state_t::combat_idle, 0.1f },
 			{ enemy::state_t::combat_idle, 0.1f },
+			{ enemy::state_t::combat_attack_windup, 0.0f },
 			{ enemy::state_t::combat_attack, 0.2f },
 			{ enemy::state_t::combat_attack_cooldown, 0.8f },
 			{ enemy::state_t::combat_idle, 0.5f },
@@ -62,7 +65,7 @@ static transition_t transition(enemy::state_t cur, dumb0_event evt)
 	return tbl[static_cast<size_t>(evt)][static_cast<size_t>(cur)];
 }
 
-static void spawn_slash(glm::vec2 dir, entity en)
+static entity spawn_slash(glm::vec2 dir, entity en)
 {
 	const auto at = 0.51f * dir;
 	const auto angle = glm::radians(-100.0f);
@@ -73,8 +76,8 @@ static void spawn_slash(glm::vec2 dir, entity en)
 	const auto cos2 = std::cos(glm::radians(delay));
 	const auto sin2 = std::sin(glm::radians(delay));
 	const auto swing_tail = glm::vec2{cos2*swing.x - sin2*swing.y, sin2*swing.x + cos2*swing.y};
-	const auto speed = 4.5f;
-	const auto lifetime = (glm::radians(+110.0f)-angle) / speed;
+	const auto speed = 7.0f;
+	const auto lifetime = 0.2f + (glm::radians(+110.0f)-angle) / speed;
 
 	const glm::vec2 zero{0.0f, 0.0f};
 	const glm::vec2 x{1.0f, 0.0f};
@@ -88,7 +91,7 @@ static void spawn_slash(glm::vec2 dir, entity en)
 	system.tfms.transformable(cone, {{swing, swing_tail, zero}, hand});
 	system.tick.expire_in(cone, {lifetime});
 	const auto cone_speed = spawn();
-	system.tfms.transformable(cone_speed, {{{0.0f, speed}, {-speed, 0.0f}, zero}, 0});
+	system.tfms.transformable(cone_speed, {{{0.0f, 0.0f}, {0.0f, 0.0f}, zero}, 0});
 	system.deriv.deriv_from(cone, cone_speed);
 	system.tick.expire_in(cone_speed, {lifetime});
 	system.phys.collider_triangle(cone, phys::mask_v<circle>);
@@ -96,6 +99,8 @@ static void spawn_slash(glm::vec2 dir, entity en)
 	system.tfms.transformable(trail, {});
 	system.tick.expire_in(trail, {lifetime});
 	system.render.trailable(trail, cone);
+
+	return cone_speed;
 }
 
 void enemy::update(float, float dt)
@@ -124,13 +129,25 @@ void enemy::update(float, float dt)
 		if (en.elapsed > trans.wait) {
 			en.state = trans.next;
 			en.elapsed = 0.0f;
-			if (trans.next == state_t::combat_attack) {
-				spawn_slash(glm::normalize(diff), id);
+			if (trans.next == state_t::combat_attack_windup) {
+				auto s = spawn_slash(glm::normalize(diff), id);
+				auto [_, ins] = attacks.emplace(id, s);
+				assert(ins);
+			} else if (trans.next == state_t::combat_attack) {
+				auto at = attacks.find(id);
+				assert(at != attacks.end());
+				auto s = at->second;
+				const auto speed = 7.0f;
+				const auto tfm = system.tfms.referential(s);
+				tfm->x().y = speed;
+				tfm->y().x = -speed;
 			}
 		}
 		if (en.state == enemy::state_t::move) {
 			const float speed = 1.5f;
 			system.tfms.referential(id)->pos() += dt * speed * glm::normalize(diff);
+		} else if (en.state == enemy::state_t::combat_attack) {
+			attacks.erase(id);
 		}
 	}
 }
