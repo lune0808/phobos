@@ -90,11 +90,9 @@ static void spawn_slash(glm::vec2 dir, entity en)
 	const auto cone_speed = spawn();
 	system.tfms.transformable(cone_speed, {{{0.0f, speed}, {-speed, 0.0f}, zero}, 0});
 	system.deriv.deriv_from(cone, cone_speed);
-	system.render.drawable(cone, render::dbg_arrow);
 	system.tick.expire_in(cone_speed, {lifetime});
 	system.phys.collider_triangle(cone, phys::mask_v<circle>);
 	const auto trail = spawn();
-	system.render.drawable(cone, render::trail);
 	system.tfms.transformable(trail, {});
 	system.tick.expire_in(trail, {lifetime});
 	system.render.trailable(trail, cone);
@@ -131,7 +129,7 @@ void enemy::update(float, float dt)
 			}
 		}
 		if (en.state == enemy::state_t::move) {
-			const float speed = 0.1f;
+			const float speed = 1.5f;
 			system.tfms.referential(id)->pos() += dt * speed * glm::normalize(diff);
 		}
 	}

@@ -25,18 +25,40 @@ phobos::entity cooldown(float seconds)
 
 phobos::entity spawn_slash(phobos::entity player)
 {
+	const glm::vec2 dir{1.0f, 0.0f};
+	const glm::vec2 at{0.55f, 0.0f};
+	const auto angle = glm::radians(-100.0f);
+	const auto cos = std::cos(angle);
+	const auto sin = std::sin(angle);
+	const auto swing = 0.6f/0.5f * glm::vec2{cos*dir.x - sin*dir.y, sin*dir.x + cos*dir.y};
+	const auto delay = 1.0f;
+	const auto cos2 = std::cos(glm::radians(delay));
+	const auto sin2 = std::sin(glm::radians(delay));
+	const auto swing_tail = glm::vec2{cos2*swing.x - sin2*swing.y, sin2*swing.x + cos2*swing.y};
+
 	const auto cone = phobos::spawn();
 	const auto trail = phobos::spawn();
-	ng.render.drawable(cone, phobos::render::object::attack_cone);
-	ng.render.drawable(trail, phobos::render::object::trail);
-	ng.tfms.transformable(cone, quad_transform({0.55f,0.0f}, {1.0f,1.0f}, player));
-	ng.tfms.transformable(trail, {});
+	const auto hand = phobos::spawn();
+	const auto cone_speed = phobos::spawn();
 	const float lifetime = 0.2f;
-	ng.tick.expire_in(cone, {lifetime});
-	ng.tick.expire_in(trail, {lifetime});
-	ng.tick.spin(cone, {{0.2f,-0.4f}, 15.0f});
-	ng.render.trailable(trail, cone);
+	const float speed = 15.0f;
+
+	ng.tfms.transformable(hand, {{{1.0f,0.0f}, {0.0f,1.0f}, at}, player});
+	ng.tick.expire_in(hand, {lifetime});
+
+	ng.tfms.transformable(cone, {{swing, swing_tail, {0.0f,0.0f}}, hand});
+	ng.render.drawable(cone, phobos::render::object::attack_cone);
 	ng.phys.collider_triangle(cone, phobos::phys::mask_v<phobos::circle>);
+	ng.tick.expire_in(cone, {lifetime});
+
+	ng.tfms.transformable(cone_speed, {{{0.0f, speed}, {-speed, 0.0f}, {0.0f, 0.0f}}, 0});
+	ng.deriv.deriv_from(cone, cone_speed);
+	ng.tick.expire_in(cone_speed, {lifetime});
+
+	ng.tfms.transformable(trail, {});
+	ng.render.trailable(trail, cone);
+	ng.tick.expire_in(trail, {lifetime});
+
 	return cooldown(0.5f);
 }
 

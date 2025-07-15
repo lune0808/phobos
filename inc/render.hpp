@@ -21,7 +21,6 @@ public:
 		attack_cone,
 		player,
 		hp_bar,
-		dbg_arrow,
 		// wall_mesh :
 		// offline, build a triangle (inside) mesh describing
 		// where you can walk, ordered so that vertices i,i+1modN
@@ -46,7 +45,6 @@ private:
 	per_draw ctx[NUM];
 	std::unordered_set<entity> drawing_[NUM];
 	GLuint attack_cone_mesh_vb;
-	GLuint dbg_arrow_vb;
 
 	struct quad {
 		glm::vec2 base;
