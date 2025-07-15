@@ -22,10 +22,10 @@ struct enemy {
 
 	struct enemy_t {
 		state_t state;
+		entity slash_speed;
 		float elapsed;
 	};
 
-	std::unordered_map<entity, entity> attacks;
 	std::unordered_map<entity, enemy_t> enemy_[static_cast<size_t>(type_t::NUM)];
 	entity player;
 

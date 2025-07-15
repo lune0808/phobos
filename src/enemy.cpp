@@ -87,6 +87,7 @@ static entity spawn_slash(glm::vec2 dir, entity en)
 	const auto hand = spawn();
 	system.tfms.transformable(hand, {{x, y, at}, en});
 	system.tick.expire_in(hand, {lifetime});
+	// TODO: find a better way to manage these objects' lifetime
 	const auto cone = spawn();
 	system.render.drawable(cone, render::attack_cone);
 	system.tfms.transformable(cone, {{swing, swing_tail, zero}, hand});
@@ -132,14 +133,11 @@ void enemy::update(float, float dt)
 			en.elapsed = 0.0f;
 			if (trans.next == state_t::combat_attack_windup) {
 				auto s = spawn_slash(glm::normalize(diff), id);
-				auto [_, ins] = attacks.emplace(id, s);
-				assert(ins);
+				en.slash_speed = s;
 			} else if (trans.next == state_t::combat_attack) {
-				auto at = attacks.find(id);
-				assert(at != attacks.end());
-				auto s = at->second;
 				const auto speed = 7.0f;
-				const auto tfm = system.tfms.referential(s);
+				const auto tfm = system.tfms.referential(en.slash_speed);
+				assert(tfm);
 				tfm->x().y = speed;
 				tfm->y().x = -speed;
 			}
@@ -147,15 +145,13 @@ void enemy::update(float, float dt)
 		if (en.state == enemy::state_t::move) {
 			const float speed = 1.5f;
 			system.tfms.referential(id)->pos() += dt * speed * glm::normalize(diff);
-		} else if (en.state == enemy::state_t::combat_attack) {
-			attacks.erase(id);
 		}
 	}
 }
 
 void enemy::make_enemy(entity e, type_t type)
 {
-	auto [_, ins] = enemy_[static_cast<size_t>(type)].emplace(e, enemy_t{state_t::idle, 0.0f});
+	auto [_, ins] = enemy_[static_cast<size_t>(type)].emplace(e, enemy_t{state_t::idle, 0, 0.0f});
 	assert(ins);
 }
 
