@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include "entity.hpp"
+#include "transform.hpp"
 
 namespace phobos {
 
@@ -46,13 +47,17 @@ bool collision_test(circle const &c, triangle const &t);
 bool collision_test(ray const &r1, ray const &r2);
 bool collision_test(circle const &c, wall_mesh const &m);
 
-struct transform2d
+struct deriv
 {
-	glm::mat3x2 repr;
+	int init();
+	void fini();
+	void update(float now, float dt);
+	void clear();
 
-	glm::vec2 &pos();
-	glm::vec2 &x();
-	glm::vec2 &y();
+	std::unordered_map<entity, entity> deriv_;
+
+	void deriv_from(entity x, entity xprime);
+	entity find(entity x) const;
 };
 
 struct phys

@@ -16,6 +16,7 @@ namespace phobos {
 	X(tfms) \
 	X(enemy) \
 	X(phys) \
+	X(deriv) \
 	X(hp) \
 	X(render) \
 	X(gl) \

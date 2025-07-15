@@ -69,14 +69,29 @@ static void spawn_slash(glm::vec2 dir, entity en)
 	const auto cos = std::cos(angle);
 	const auto sin = std::sin(angle);
 	const auto swing = 0.6f/0.5f * glm::vec2{cos*dir.x - sin*dir.y, sin*dir.x + cos*dir.y};
+	const auto delay = 1.0f;
+	const auto cos2 = std::cos(glm::radians(delay));
+	const auto sin2 = std::sin(glm::radians(delay));
+	const auto swing_tail = glm::vec2{cos2*swing.x - sin2*swing.y, sin2*swing.x + cos2*swing.y};
 	const auto speed = 4.5f;
 	const auto lifetime = (glm::radians(+110.0f)-angle) / speed;
 
+	const glm::vec2 zero{0.0f, 0.0f};
+	const glm::vec2 x{1.0f, 0.0f};
+	const glm::vec2 y{0.0f, 1.0f};
+
+	const auto hand = spawn();
+	system.tfms.transformable(hand, {{x, y, at}, en});
+	system.tick.expire_in(hand, {lifetime});
 	const auto cone = spawn();
 	system.render.drawable(cone, render::attack_cone);
-	system.tfms.transformable(cone, {{swing, swing, at}, en});
+	system.tfms.transformable(cone, {{swing, swing_tail, zero}, hand});
 	system.tick.expire_in(cone, {lifetime});
-	system.tick.spin(cone, {swing, speed});
+	const auto cone_speed = spawn();
+	system.tfms.transformable(cone_speed, {{{0.0f, speed}, {-speed, 0.0f}, zero}, 0});
+	system.deriv.deriv_from(cone, cone_speed);
+	system.render.drawable(cone, render::dbg_arrow);
+	system.tick.expire_in(cone_speed, {lifetime});
 	system.phys.collider_triangle(cone, phys::mask_v<circle>);
 	const auto trail = spawn();
 	system.render.drawable(cone, render::trail);

@@ -57,10 +57,6 @@ bool collision_test(circle const &c, triangle const &t)
 	return false;
 }
 
-glm::vec2 &transform2d::pos() { return repr[2]; }
-glm::vec2 &transform2d::  x() { return repr[0]; }
-glm::vec2 &transform2d::  y() { return repr[1]; }
-
 bool collision_test(ray const &r1, ray const &r2)
 {
 	const auto diff = r2.origin - r1.origin;
@@ -237,6 +233,45 @@ void phys::update(float, float dt)
 			}
 		}
 	}
+}
+
+int deriv::init()
+{
+	return 0;
+}
+
+void deriv::fini()
+{
+}
+
+void deriv::update(float, float dt)
+{
+	for (const auto e : on_hold()) {
+		deriv_.erase(e);
+	}
+	for (const auto [x, xprime] : deriv_) {
+		auto &tx = *system.tfms.referential(x);
+		// FIXME: not accurate for rotations?
+		const auto &txprime = *system.tfms.referential(xprime);
+		tx += dt * (txprime * tx);
+	}
+}
+
+void deriv::clear()
+{
+	deriv_.clear();
+}
+
+void deriv::deriv_from(entity x, entity xprime)
+{
+	auto [_, inserted] = deriv_.emplace(x, xprime);
+	assert(inserted);
+}
+
+entity deriv::find(entity x) const
+{
+	auto at = deriv_.find(x);
+	return (at != deriv_.end()) ? at->second : 0;
 }
 
 } // phobos

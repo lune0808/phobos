@@ -264,6 +264,33 @@ int render::init()
 	}
 
 	{
+		unsigned char fill[] = {
+			0xff, 0x00, 0x00, 0xff,
+			0xff, 0xff, 0x00, 0xff,
+			0xff, 0x00, 0x00, 0xff,
+			0xff, 0xff, 0x00, 0xff,
+		};
+		image img;
+		img.base = fill;
+		img.width = 2;
+		img.height = 2;
+		img.channels = 4;
+		texture tex{img, shader, "unif_color\0"sv};
+
+		float vdata[] = {
+			0.0f, 0.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 1.0f, 0.0f,
+		};
+		GLuint idata[] = {
+			0, 1
+		};
+		const auto bos = describe_layout_f2f2(vdata, sizeof vdata, idata, sizeof idata, GL_STATIC_DRAW);
+		ctx[dbg_arrow] = per_draw{ bos.va, shader, tex, std::size(idata) };
+		dbg_arrow_vb = bos.vb;
+		++ok;
+	}
+
+	{
 		image img{"res/slash.png\0"sv};
 		if (!img.ok()) goto fail;
 		texture tex{img, trail_shader, "unif_color\0"sv};
@@ -379,6 +406,19 @@ void render::update(float now, float dt)
 				const auto parent = system.tfms.referential(e)->parent;
 				const auto hp = system.hp.living_.find(parent)->second;
 				glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_fullness"), hp.current / hp.max);
+			} else if (obj == dbg_arrow) {
+				const auto speed = system.deriv.find(e);
+				assert(speed);
+				const auto dx = 0.100f * (system.tfms.world(speed) * this_entity);
+				glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
+						1, GL_FALSE, glm::value_ptr(glm::mat3(1.0f)));
+				const auto from = this_entity * glm::vec3(1.0f, 0.0f, 1.0f);
+				const auto to   = (this_entity + dx) * glm::vec3(1.0f, 0.0f, 1.0f);
+				glBindBuffer(GL_ARRAY_BUFFER, dbg_arrow_vb);
+				glBufferSubData(GL_ARRAY_BUFFER, 0*sizeof(float[4]), 2*sizeof(float), &from);
+				glBufferSubData(GL_ARRAY_BUFFER, 1*sizeof(float[4]), 2*sizeof(float), &to  );
+				glDrawElements(GL_LINES, this_draw.tricount, GL_UNSIGNED_INT, nullptr);
+				continue;
 			}
 			glDrawElements(GL_TRIANGLES, this_draw.tricount, GL_UNSIGNED_INT, nullptr);
 		} else {
