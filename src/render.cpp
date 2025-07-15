@@ -106,11 +106,12 @@ int render::init()
 		"layout(location=1) in vec2 attr_uv;\n"
 		"out vec2 vert_uv;\n"
 		"uniform mat3 unif_view;\n"
-		"uniform mat3 unif_model;\n"
+		"uniform mat3x2 unif_model;\n"
 		"uniform float world_zoom;\n"
 		"void main() {\n"
 			"vert_uv = attr_uv;\n"
-			"vec3 pos = world_zoom * unif_view * unif_model * vec3(attr_pos, 1.0);\n"
+			"mat3 model = mat3(vec3(unif_model[0], 0.0), vec3(unif_model[1], 0.0), vec3(unif_model[2], 1.0));\n"
+			"vec3 pos = world_zoom * unif_view * model * vec3(attr_pos, 1.0);\n"
 			"gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
 		"}\n\0"sv,
 
@@ -127,10 +128,10 @@ int render::init()
 			"frag_color = color;\n"
 		"}\n\0"sv,
 	};
-	glm::mat3 id(1.0f);
+	glm::mat3x2 id(1.0f);
 	shader.bind();
-	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(id));
-	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
+	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_model"), 1, GL_FALSE, &id[0][0]);
+	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_view" ), 1, GL_FALSE, &id[0][0]);
 
 	shader_pipeline trail_shader{
 		"#version 410 core\n"
@@ -161,7 +162,7 @@ int render::init()
 		"}\n\0"sv
 	};
 	trail_shader.bind();
-	glUniformMatrix3fv(glGetUniformLocation(trail_shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
+	glUniformMatrix3fv(glGetUniformLocation(trail_shader.id, "unif_view" ), 1, GL_FALSE, &id[0][0]);
 
 	shader_pipeline hp_shader{
 		"#version 410 core\n"
@@ -191,8 +192,8 @@ int render::init()
 		"}\n\0"
 	};
 	hp_shader.bind();
-	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_model"), 1, GL_FALSE, glm::value_ptr(id));
-	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_view" ), 1, GL_FALSE, glm::value_ptr(id));
+	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_model"), 1, GL_FALSE, &id[0][0]);
+	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_view" ), 1, GL_FALSE, &id[0][0]);
 	if (!shader.ok()) goto fail;
 	if (!trail_shader.ok()) goto fail;
 	if (!hp_shader.ok()) goto fail;
@@ -365,8 +366,8 @@ void render::update(float now, float dt)
 				glm::vec3{this_entity.  y(), 0.0f},
 				glm::vec3{this_entity.pos(), 1.0f},
 			};
-			glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
-					1, GL_FALSE, glm::value_ptr(model));
+			glUniformMatrix3x2fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
+					1, GL_FALSE, &this_entity[0][0]);
 			const auto red_shift = system.phys.colliding.contains(e)? 0.3f: 0.0f;
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			if (obj == attack_cone) {
