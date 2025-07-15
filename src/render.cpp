@@ -128,10 +128,6 @@ int render::init()
 			"frag_color = color;\n"
 		"}\n\0"sv,
 	};
-	glm::mat3x2 id(1.0f);
-	shader.bind();
-	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_model"), 1, GL_FALSE, &id[0][0]);
-	glUniformMatrix3fv(glGetUniformLocation(shader.id, "unif_view" ), 1, GL_FALSE, &id[0][0]);
 
 	shader_pipeline trail_shader{
 		"#version 410 core\n"
@@ -161,8 +157,6 @@ int render::init()
 		"	frag_color = vert_scale * color;\n"
 		"}\n\0"sv
 	};
-	trail_shader.bind();
-	glUniformMatrix3fv(glGetUniformLocation(trail_shader.id, "unif_view" ), 1, GL_FALSE, &id[0][0]);
 
 	shader_pipeline hp_shader{
 		"#version 410 core\n"
@@ -191,9 +185,6 @@ int render::init()
 		"	frag_color = color;\n"
 		"}\n\0"
 	};
-	hp_shader.bind();
-	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_model"), 1, GL_FALSE, &id[0][0]);
-	glUniformMatrix3fv(glGetUniformLocation(hp_shader.id, "unif_view" ), 1, GL_FALSE, &id[0][0]);
 	if (!shader.ok()) goto fail;
 	if (!trail_shader.ok()) goto fail;
 	if (!hp_shader.ok()) goto fail;
