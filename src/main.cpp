@@ -31,7 +31,7 @@ phobos::entity spawn_slash(phobos::entity player)
 	const auto cos = std::cos(angle);
 	const auto sin = std::sin(angle);
 	const auto swing = 0.6f/0.5f * glm::vec2{cos*dir.x - sin*dir.y, sin*dir.x + cos*dir.y};
-	const auto delay = 1.0f;
+	const auto delay = 20.0f;
 	const auto cos2 = std::cos(glm::radians(delay));
 	const auto sin2 = std::sin(glm::radians(delay));
 	const auto swing_tail = glm::vec2{cos2*swing.x - sin2*swing.y, sin2*swing.x + cos2*swing.y};

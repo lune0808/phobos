@@ -68,16 +68,17 @@ static transition_t transition(enemy::state_t cur, dumb0_event evt)
 static entity spawn_slash(glm::vec2 dir, entity en)
 {
 	const auto at = 0.51f * dir;
-	const auto angle = glm::radians(-100.0f);
+	const auto angle = glm::radians(-90.0f);
+	const auto windspeed = -1.5f;
 	const auto cos = std::cos(angle);
 	const auto sin = std::sin(angle);
 	const auto swing = 0.6f/0.5f * glm::vec2{cos*dir.x - sin*dir.y, sin*dir.x + cos*dir.y};
-	const auto delay = 1.0f;
+	const auto delay = 20.0f;
 	const auto cos2 = std::cos(glm::radians(delay));
 	const auto sin2 = std::sin(glm::radians(delay));
 	const auto swing_tail = glm::vec2{cos2*swing.x - sin2*swing.y, sin2*swing.x + cos2*swing.y};
 	const auto speed = 7.0f;
-	const auto lifetime = 0.2f + (glm::radians(+110.0f)-angle) / speed;
+	const auto lifetime = 0.2f + (glm::radians(+100.0f)-angle-windspeed*0.2f) / speed;
 
 	const glm::vec2 zero{0.0f, 0.0f};
 	const glm::vec2 x{1.0f, 0.0f};
@@ -91,7 +92,7 @@ static entity spawn_slash(glm::vec2 dir, entity en)
 	system.tfms.transformable(cone, {{swing, swing_tail, zero}, hand});
 	system.tick.expire_in(cone, {lifetime});
 	const auto cone_speed = spawn();
-	system.tfms.transformable(cone_speed, {{{0.0f, 0.0f}, {0.0f, 0.0f}, zero}, 0});
+	system.tfms.transformable(cone_speed, {{{0.0f, windspeed}, {-windspeed, 0.0f}, zero}, 0});
 	system.deriv.deriv_from(cone, cone_speed);
 	system.tick.expire_in(cone_speed, {lifetime});
 	system.phys.collider_triangle(cone, phys::mask_v<circle>);
