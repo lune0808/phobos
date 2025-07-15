@@ -22,12 +22,6 @@ void tick::follow(entity e, follow_t data)
 	assert(inserted);
 }
 
-void tick::spin(entity e, spin_t data)
-{
-	auto [_, inserted] = spinning_.emplace(e, data);
-	assert(inserted);
-}
-
 int tick::init()
 {
 	return 0;
@@ -41,7 +35,6 @@ void tick::clear()
 {
 	expiring_.clear();
 	following_.clear();
-	spinning_.clear();
 }
 
 void tick::update(float, float dt)
@@ -54,7 +47,6 @@ void tick::update(float, float dt)
 	for (const auto e : on_hold()) {
 		expiring_.erase(e);
 		following_.erase(e);
-		spinning_.erase(e);
 	}
 	for (auto &[e, data] : following_) {
 		auto cur = system.tfms.referential(e);
@@ -65,24 +57,6 @@ void tick::update(float, float dt)
 		const auto dir = glm::normalize(delta);
 		const auto speed = 0.03f;
 		cur->pos() += dt * speed * dir;
-	}
-	for (auto &[e, data] : spinning_) {
-		// Rcos(A+B)=(RcosA)cosB-(RsinA)sinB
-		// Rsin(A+B)=(RcosA)sinB+(RsinA)cosB
-		// this accumulates errors but it is fine because
-		// entities don't spin for a long time
-		const auto speed = data.speed;
-		const auto cos_dtheta = std::cos(speed * dt);
-		const auto sin_dtheta = std::sin(speed * dt);
-		const auto cos_next = data.state.x * cos_dtheta
-			            - data.state.y * sin_dtheta;
-		const auto sin_next = data.state.x * sin_dtheta
-			            + data.state.y * cos_dtheta;
-		const auto state_next = glm::vec2{cos_next, sin_next};
-		auto cur = system.tfms.referential(e);
-		cur->x() = data.state;
-		cur->y() = state_next;
-		data.state = state_next;
 	}
 }
 
