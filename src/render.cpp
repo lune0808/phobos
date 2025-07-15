@@ -306,6 +306,7 @@ void render::fini()
 
 void render::drawable(entity e, object type)
 {
+	assert(type != trail);
 	const auto [addr, inserted] = drawing_[type].emplace(e);
 	assert(inserted);
 }
@@ -352,11 +353,6 @@ void render::update(float now, float dt)
 		glUniform1f(glGetUniformLocation(this_draw.shader.id, "world_zoom"), world_zoom);
 		if (obj != trail) for (const auto e: drawing_[obj]) {
 			auto this_entity = system.tfms.world(e);
-			const glm::mat3 model{
-				glm::vec3{this_entity.  x(), 0.0f},
-				glm::vec3{this_entity.  y(), 0.0f},
-				glm::vec3{this_entity.pos(), 1.0f},
-			};
 			glUniformMatrix3x2fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
 					1, GL_FALSE, &this_entity[0][0]);
 			const auto red_shift = system.phys.colliding.contains(e)? 0.3f: 0.0f;
