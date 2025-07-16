@@ -27,6 +27,7 @@ public:
 		// and to draw it you clear screen with the "outside"
 		// texture then draw the "inside" as the wall_mesh
 		wall_mesh,
+		aggro,
 		trail,
 		enemy,
 		attack_cone,

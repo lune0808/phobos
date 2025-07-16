@@ -20,6 +20,19 @@ void tfms::update(float, float)
 {
 }
 
+void tfms::transformable(entity e, float scale, glm::vec2 offset, entity parent)
+{
+	transform tfm{
+		{
+			{ scale, 0.0f },
+			{ 0.0f, scale },
+			offset,
+		},
+		parent,
+	};
+	transformable(e, tfm);
+}
+
 void tfms::transformable(entity e, transform tfm)
 {
 	tfm.id = e;

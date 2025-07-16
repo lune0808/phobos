@@ -33,7 +33,6 @@ struct enemy {
 		entity id;
 		state_t state;
 		entity slash_speed;
-		float elapsed;
 	};
 
 	std::vector<enemy_t> enemy_[static_cast<size_t>(type_t::NUM)];
@@ -59,11 +58,11 @@ struct dispatch
 	// to collisions matching a certain tag mask
 
 	// with = 0 means test for any collision
-	void listen_collision(entity e, entity with, std::uint32_t payload);
+	void listen_collision(entity listen, entity e, entity with, std::uint32_t payload);
 
 	struct event_collision
 	{
-		entity e;
+		entity listen;
 		std::uint32_t payload;
 	};
 
@@ -71,6 +70,7 @@ struct dispatch
 
 private:
 	struct listening_collision_t {
+		entity listen;
 		entity e;
 		entity with;
 		std::uint32_t payload;

@@ -285,6 +285,26 @@ int render::init()
 	}
 
 	{
+		image img{"res/aggro.png\0"sv};
+		if (!img.ok()) goto fail;
+		texture tex{img, shader, "unif_color\0"sv};
+		img.fini();
+		float vdata[] = {
+			-0.5f, -0.5f, 0.0f, 0.0f,
+			+0.5f, -0.5f, 1.0f, 0.0f,
+			-0.5f, +0.5f, 0.0f, 1.0f,
+			+0.5f, +0.5f, 1.0f, 1.0f,
+		};
+		GLuint idata[] = {
+			0, 1, 2,
+			2, 3, 0,
+		};
+		GLuint va = describe_layout_f2f2(vdata, sizeof vdata, idata, sizeof idata, GL_STATIC_DRAW).va;
+		ctx[aggro] = per_draw{ va, shader, tex, std::size(idata) };
+		++ok;
+	}
+
+	{
 		unsigned char fill[4] = { 0xf2, 0xde, 0xe3, 0xff };
 		image img;
 		img.base = fill;

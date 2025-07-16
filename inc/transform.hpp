@@ -25,6 +25,7 @@ struct tfms
 
 	std::vector<transform> data;
 
+	void transformable(entity e, float scale, glm::vec2 offset, entity parent);
 	void transformable(entity e, transform tfm);
 	transform *referential(entity e);
 	transform world(entity e);
