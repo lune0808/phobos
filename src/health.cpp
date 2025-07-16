@@ -20,7 +20,7 @@ void hp::update(float, float)
 		if (!(col_data & (1u<<triangle::bit)))
 			continue;
 		auto &hp = living_[index(e, system_id::hp)];
-		if (live(hp.cooldown))
+		if (has_component(hp.cooldown, system_id::tick))
 			continue;
 		// FIXME: this should come from the colliding entity
 		hp.current -= 1.0f;

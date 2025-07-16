@@ -33,10 +33,5 @@ void update()
 	g_on_hold.clear();
 }
 
-bool live(entity e)
-{
-	return e && g_entity_mapping[static_cast<size_t>(system_id::tick)].contains(e);
-}
-
 } // phobos
 

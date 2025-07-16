@@ -91,7 +91,7 @@ phobos::entity player_control(phobos::entity attack, phobos::entity player, floa
 		tfm->pos() += offset;
 		ng.render.camera_pos -= offset;
 	}
-	if (ng.input.pressed(phobos::key::K_F) && !phobos::live(attack))
+	if (ng.input.pressed(phobos::key::K_F) && (!attack || !phobos::has_component(attack, phobos::system_id::tick)))
 		attack = spawn_slash(player);
 	return attack;
 }
