@@ -1,7 +1,7 @@
 DIR = $(shell find inc -type d)
 BINDIR = $(DIR:inc%=bin%)
 LIBS = glfw3 gl
-CPPFLAGS = -MMD $(addprefix -I,$(BINDIR)) $(addprefix -I,$(DIR)) $(shell pkg-config --cflags $(LIBS)) -DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_XYZW_ONLY
+CPPFLAGS = -MMD -fpch-deps -Ibin -Iinc $(shell pkg-config --cflags $(LIBS)) -DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_XYZW_ONLY
 CFLAGS =
 CXXFLAGS = -std=c++23 -ggdb3
 LDFLAGS = $(shell pkg-config --libs $(LIBS))

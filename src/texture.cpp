@@ -1,6 +1,6 @@
 #include "texture.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb/stb_image.h>
 
 image::image(std::string_view path)
 	: base(nullptr)
