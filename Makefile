@@ -38,7 +38,7 @@ bin/%.h.gch: inc/%.h
 bin/%.hpp.gch: inc/%.hpp
 	$(CC) $(CPPFLAGS) -o $@ $< $(CXXFLAGS)
 
-run:: $(BIN)
+run:: all
 	$(BIN)
 
 clean::

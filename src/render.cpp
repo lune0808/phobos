@@ -118,12 +118,12 @@ static trail_buffers describe_layout_trail(size_t segment_count)
 full_wall_mesh load_wall_mesh()
 {
 	static const glm::vec2 vert[] = {
-		{ -0.9f, -0.9f, },
-		{ +0.9f, -0.9f, },
-		{ +0.9f, +0.9f, },
-		{ -0.1f, +0.9f, },
-		{ +0.1f, +0.3f, },
-		{ -0.9f,  0.0f, },
+		{ 2.0f * -0.9f, 2.0f * -0.9f, },
+		{ 2.0f * +0.9f, 2.0f * -0.9f, },
+		{ 2.0f * +0.9f, 2.0f * +0.9f, },
+		{ 2.0f * -0.1f, 2.0f * +0.9f, },
+		{ 2.0f * +0.1f, 2.0f * +0.3f, },
+		{ 2.0f * -0.9f, 2.0f *  0.0f, },
 	};
 	static const glm::vec2 uv[] = {
 		{ -0.9f, -0.9f, },

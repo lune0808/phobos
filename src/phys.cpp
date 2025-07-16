@@ -74,6 +74,9 @@ bool collision_test(ray const &r1, ray const &r2)
 
 bool collision_test(circle const &c, wall_mesh const &m)
 {
+	// FIXME: yuck
+	if (m.size() < 2)
+		return false;
 	const ray edge{
 		m.back(),
 		m[0]-m.back(),
@@ -123,7 +126,7 @@ void phys::collider_ray(entity e, std::uint32_t collide_mask)
 void phys::collider_wall_mesh(entity e, wall_mesh const &m)
 {
 	const std::uint32_t type_idx = collider<wall_mesh>::bit;
-	wall_mesh_.emplace_back(collider<wall_mesh>{ wall_mesh{}, 0, e });
+	wall_mesh_.emplace_back(collider<wall_mesh>{ m, 0, e });
 	const std::uint32_t idx = type_idx | wall_mesh_.size()-1 << type_shift;
 	add_component(e, system_id::phys);
 	reindex(e, system_id::phys, idx);
