@@ -1,4 +1,4 @@
-#include <print>
+#include "c++lib.hpp"
 #include "window.hpp"
 
 static constexpr float world_zoom_tbl[] = {

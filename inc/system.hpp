@@ -1,4 +1,5 @@
 #pragma once
+#include "c++lib.hpp"
 #include "entity.hpp"
 #include "render.hpp"
 #include "tick.hpp"

@@ -1,8 +1,7 @@
+#include "c++lib.hpp"
 #include "system.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
-#include <string_view>
-#include <print>
 
 inline auto &ng = phobos::system;
 

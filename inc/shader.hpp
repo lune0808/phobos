@@ -1,6 +1,6 @@
 #pragma once
+#include "c++lib.hpp"
 #include <glad/gl.h>
-#include <string_view>
 
 
 struct shader_stage

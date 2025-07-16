@@ -1,7 +1,6 @@
+#include "c++lib.hpp"
 #include "entity.hpp"
 #include "system.hpp"
-#include <vector>
-#include <unordered_map>
 
 namespace phobos {
 

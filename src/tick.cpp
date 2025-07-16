@@ -1,6 +1,5 @@
+#include "c++lib.hpp"
 #include "system.hpp"
-#include <limits>
-#include <cassert>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 

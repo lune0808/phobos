@@ -1,5 +1,5 @@
+#include "c++lib.hpp"
 #include "system.hpp"
-#include <cassert>
 
 namespace phobos {
 

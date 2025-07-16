@@ -1,8 +1,6 @@
 #pragma once
+#include "c++lib.hpp"
 #include <glm/glm.hpp>
-#include <cstdint>
-#include <vector>
-#include <unordered_map>
 #include "entity.hpp"
 #include "transform.hpp"
 

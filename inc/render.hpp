@@ -1,7 +1,6 @@
 #pragma once
-#include <cstdint>
+#include "c++lib.hpp"
 #include <glad/gl.h>
-#include <vector>
 #include "shader.hpp"
 #include "texture.hpp"
 #include "window.hpp"

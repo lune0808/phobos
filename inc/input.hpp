@@ -1,6 +1,7 @@
 #pragma once
+#include "c++lib.hpp"
 #include "window.hpp"
-#include <bitset>
+#include "entity.hpp"
 
 namespace phobos {
 

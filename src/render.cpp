@@ -1,8 +1,5 @@
+#include "c++lib.hpp"
 #include "system.hpp"
-#include <cstring>
-#include <cassert>
-#include <print>
-#include <string_view>
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
 
