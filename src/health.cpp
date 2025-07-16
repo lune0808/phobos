@@ -14,9 +14,10 @@ void hp::fini() {}
 
 void hp::update(float, float)
 {
-	for (const auto &[e, other_type] : system.phys.colliding) {
+	for (const auto &[e, other] : system.phys.colliding) {
 		if (!has_component(e, system_id::hp))
 			continue;
+		const auto other_type = system.phys.collider_type(other);
 		if (other_type != triangle::bit)
 			continue;
 		auto &hp = living_[index(e, system_id::hp)];

@@ -104,9 +104,11 @@ static entity spawn_slash(glm::vec2 dir, entity en)
 void enemy::update(float, float dt)
 {
 	auto pl_pos = system.tfms.world(player).pos();
+	std::vector<dumb0_event> event;
+	event.reserve(enemy_[static_cast<size_t>(type_t::dumb0)].size()-1);
 	for (size_t idx = 1; idx < enemy_[static_cast<size_t>(type_t::dumb0)].size(); ++idx) {
 		auto &e = enemy_[static_cast<size_t>(type_t::dumb0)][idx];
-		auto en_pos = system.tfms.world(e.id).pos();
+		const auto en_pos = system.tfms.world(e.id).pos();
 		const auto diff = pl_pos - en_pos;
 		const auto len2 = glm::length2(diff);
 		const auto range =
@@ -118,13 +120,19 @@ void enemy::update(float, float dt)
 		const auto evt = (len2 < range*range) ? dumb0_event::player_close:
 				 (len2 < 5.0f * 5.0f) ? dumb0_event::player_visible:
 				 dumb0_event::player_far;
-		const auto trans = transition(e.state, evt);
-		e.elapsed += dt;
-		if (e.elapsed > trans.wait) {
+		event.emplace_back(evt);
+	}
+	for (size_t idx = 1; idx < enemy_[static_cast<size_t>(type_t::dumb0)].size(); ++idx) {
+		auto &e = enemy_[static_cast<size_t>(type_t::dumb0)][idx];
+		const auto trans = transition(e.state, event[idx-1]);
+		const auto elapsed = e.elapsed += dt;
+		if (elapsed > trans.wait) {
 			e.state = trans.next;
 			e.elapsed = 0.0f;
 			if (trans.next == state_t::combat_attack_windup) {
-				auto s = spawn_slash(glm::normalize(diff), e.id);
+				const auto en_pos = system.tfms.world(e.id).pos();
+				const auto diff = pl_pos - en_pos;
+				const auto s = spawn_slash(glm::normalize(diff), e.id);
 				e.slash_speed = s;
 			} else if (trans.next == state_t::combat_attack) {
 				const auto speed = 7.0f;
@@ -135,6 +143,8 @@ void enemy::update(float, float dt)
 			}
 		}
 		if (e.state == enemy::state_t::move) {
+			const auto en_pos = system.tfms.world(e.id).pos();
+			const auto diff = pl_pos - en_pos;
 			const float speed = 1.5f;
 			system.tfms.referential(e.id)->pos() += dt * speed * glm::normalize(diff);
 		}

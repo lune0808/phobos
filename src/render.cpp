@@ -117,13 +117,14 @@ static trail_buffers describe_layout_trail(size_t segment_count)
 
 full_wall_mesh load_wall_mesh()
 {
+	static constexpr float scale = 4.0f;
 	static const glm::vec2 vert[] = {
-		{ 2.0f * -0.9f, 2.0f * -0.9f, },
-		{ 2.0f * +0.9f, 2.0f * -0.9f, },
-		{ 2.0f * +0.9f, 2.0f * +0.9f, },
-		{ 2.0f * -0.1f, 2.0f * +0.9f, },
-		{ 2.0f * +0.1f, 2.0f * +0.3f, },
-		{ 2.0f * -0.9f, 2.0f *  0.0f, },
+		{ scale * -0.9f, scale * -0.9f, },
+		{ scale * +0.9f, scale * -0.9f, },
+		{ scale * +0.9f, scale * +0.9f, },
+		{ scale * -0.1f, scale * +0.9f, },
+		{ scale * +0.1f, scale * +0.3f, },
+		{ scale * -0.9f, scale *  0.0f, },
 	};
 	static const glm::vec2 uv[] = {
 		{ -0.9f, -0.9f, },
@@ -469,6 +470,7 @@ void render::update(float now, float dt)
 			const auto begin = std::cbegin(system.phys.colliding);
 			const auto end   = std::cend  (system.phys.colliding);
 			const auto red_shift = std::find_if(begin, end, [=] (auto elem) { return elem.main == e; }) != end? 0.3f: 0.0f;
+			// TODO: this should be a FSM hurt state to avoid searching every collision every time as well as handle the cooldown
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			if (obj == attack_cone) {
 				const float scale = 1e-2 / dt;

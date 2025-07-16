@@ -201,9 +201,10 @@ void phys::update_colliders()
 	}
 }
 
-static void collision(auto *map, entity e, std::uint32_t other)
+static void collision(auto *map, entity e, entity other)
 {
 	map->emplace_back(e, other);
+	map->emplace_back(other, e);
 }
 
 void phys::update(float, float dt)
@@ -214,24 +215,21 @@ void phys::update(float, float dt)
 		if (col1.mask & (1zu<<triangle::bit)) {
 			for (auto &col2 : triangle_) {
 				if (collision_test(col1, col2)) {
-					collision(&colliding, col1.id, triangle::bit);
-					collision(&colliding, col2.id, circle::bit);
+					collision(&colliding, col1.id, col2.id);
 				}
 			}
 		}
 		if (col1.mask & (1zu<<ray::bit)) {
 			for (auto &col2 : ray_) {
 				if (collision_test(col1, col2).has_intersection) {
-					collision(&colliding, col1.id, ray::bit);
-					collision(&colliding, col2.id, circle::bit);
+					collision(&colliding, col1.id, col2.id);
 				}
 			}
 		}
 		if (col1.mask & (1zu<<wall_mesh::bit)) {
 			for (auto &col2 : wall_mesh_) {
 				if (collision_test(col1, col2)) {
-					collision(&colliding, col1.id, wall_mesh::bit);
-					collision(&colliding, col2.id, circle::bit);
+					collision(&colliding, col1.id, col2.id);
 				}
 			}
 		}
@@ -240,8 +238,7 @@ void phys::update(float, float dt)
 		if (col1.mask & (1zu<<circle::bit)) {
 			for (auto &col2 : circle_) {
 				if (collision_test(col2, col1)) {
-					collision(&colliding, col1.id, circle::bit);
-					collision(&colliding, col2.id, triangle::bit);
+					collision(&colliding, col1.id, col2.id);
 				}
 			}
 		}
@@ -249,8 +246,7 @@ void phys::update(float, float dt)
 			// approximate tests assuming small triangles
 			for (auto &col2 : ray_) {
 				if (collision_test(ray{col1.origin, col1.u}, col2)) {
-					collision(&colliding, col1.id, ray::bit);
-					collision(&colliding, col2.id, triangle::bit);
+					collision(&colliding, col1.id, col2.id);
 				}
 			}
 		}
@@ -292,6 +288,12 @@ void deriv::remove(entity e)
 	reindex(deriv_[idx].first, system_id::deriv, idx);
 	deriv_.pop_back();
 	del_component(e, system_id::deriv);
+}
+
+std::uint32_t phys::collider_type(entity e)
+{
+	const auto idx = index(e, system_id::phys);
+	return idx & type_mask;
 }
 
 } // phobos

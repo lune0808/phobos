@@ -5,6 +5,7 @@
 #include <string_view>
 #include <limits>
 #include <print>
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 

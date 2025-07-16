@@ -92,12 +92,13 @@ struct phys
 	void collider_triangle(entity e, std::uint32_t collide_mask);
 	void collider_ray(entity e, std::uint32_t collide_mask);
 	void collider_wall_mesh(entity e, wall_mesh const &m);
+	std::uint32_t collider_type(entity e);
 	void update_colliders();
 
 	struct collision_data
 	{
 		entity main;
-		std::uint32_t other_type;
+		entity other;
 	};
 
 	std::vector<collision_data> colliding;
