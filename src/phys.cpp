@@ -180,24 +180,18 @@ void phys::fini()
 
 void phys::update_colliders()
 {
-	bool first = true;
 	for (auto &col : circle_) {
-		if (first) { first = false; continue; }
 		auto tfm = system.tfms.world(col.id);
 		col.origin = tfm.pos();
 		col.radius = tfm.x().x * 0.5f;
 	}
-	first = true;
 	for (auto &col : triangle_) {
-		if (first) { first = false; continue; }
 		auto tfm = system.tfms.world(col.id);
 		col.origin = tfm.pos();
 		col.u = tfm.x();
 		col.v = tfm.y();
 	}
-	first = true;
 	for (auto &col : ray_) {
-		if (first) { first = false; continue; }
 		auto tfm = system.tfms.world(col.id);
 		col.origin = tfm.pos();
 		col.swept = tfm.x();
@@ -276,9 +270,7 @@ void deriv::fini()
 
 void deriv::update(float, float dt)
 {
-	bool first = true;
 	for (const auto [x, xprime] : deriv_) {
-		if (first) { first = false; continue; }
 		auto &tx = *system.tfms.referential(x);
 		// FIXME: not accurate for rotations?
 		const auto &txprime = *system.tfms.referential(xprime);

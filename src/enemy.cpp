@@ -104,9 +104,8 @@ static entity spawn_slash(glm::vec2 dir, entity en)
 void enemy::update(float, float dt)
 {
 	auto pl_pos = system.tfms.world(player).pos();
-	bool first = true;
-	for (auto &e : enemy_[static_cast<size_t>(type_t::dumb0)]) {
-		if (first) { first = false; continue; }
+	for (size_t idx = 1; idx < enemy_[static_cast<size_t>(type_t::dumb0)].size(); ++idx) {
+		auto &e = enemy_[static_cast<size_t>(type_t::dumb0)][idx];
 		auto en_pos = system.tfms.world(e.id).pos();
 		const auto diff = pl_pos - en_pos;
 		const auto len2 = glm::length2(diff);

@@ -331,9 +331,8 @@ void render::trailable(entity t, entity ref)
 
 void render::update(float now, float dt)
 {
-	bool first = true;
-	for (auto &data : trails.trailing_) {
-		if (first) { first = false; continue; }
+	for (size_t i = 1; i < trails.trailing_.size(); ++i) {
+		auto &data = trails.trailing_[i];
 		auto ref = system.tfms.world(data.ref);
 		data.buf[data.insert].base = ref.pos();
 		data.buf[data.insert].offs = ref.pos() + ref.y();
@@ -357,9 +356,8 @@ void render::update(float now, float dt)
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniform1f(glGetUniformLocation(this_draw.shader.id, "world_zoom"), world_zoom);
-		bool first = true;
-		if (obj != trail) for (const auto e: drawing_[obj]) {
-			if (first) { first = false; continue; }
+		if (obj != trail) for (size_t i = 1; i < drawing_[obj].size(); ++i) {
+			const auto e = drawing_[obj][i];
 			auto this_entity = system.tfms.world(e);
 			glUniformMatrix3x2fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
 					1, GL_FALSE, &this_entity[0][0]);
@@ -380,8 +378,8 @@ void render::update(float now, float dt)
 		} else {
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "now"), now);
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "max_dt"), 0.3f);
-			for (auto &data : trails.trailing_) {
-				if (first) { first = false; continue; }
+			for (size_t i = 1; i < trails.trailing_.size(); ++i) {
+				auto &data = trails.trailing_[i];
 				const auto to_end = (TRAIL_MAX_SEGMENTS-data.insert);
 				const auto from_start = data.insert;
 				glBindBuffer(GL_ARRAY_BUFFER, trails.wpos);
