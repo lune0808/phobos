@@ -10,22 +10,29 @@
 
 namespace phobos {
 
+struct full_wall_mesh {
+	wall_mesh pos;
+	std::vector<glm::vec2> uv;
+	std::vector<GLuint> indices;
+};
+
 class render
 {
 public:
 	enum object {
-		trail,
-		enemy,
-		attack_cone,
-		player,
-		hp_bar,
-		// wall_mesh :
 		// offline, build a triangle (inside) mesh describing
 		// where you can walk, ordered so that vertices i,i+1modN
 		// are always edges along the boundary so collision test
 		// can just ignore the triangle table,
 		// and to draw it you clear screen with the "outside"
 		// texture then draw the "inside" as the wall_mesh
+		wall_mesh,
+		trail,
+		enemy,
+		attack_cone,
+		player,
+		// entity's parent has the hp value
+		hp_bar,
 		NUM
 	};
 
@@ -70,12 +77,15 @@ public:
 
 	void drawable(entity e, object type);
 	void trailable(entity e, entity ref);
+	void wall(entity e, full_wall_mesh const &mesh);
 
 	void update(float now, float dt);
 	int init();
 	void fini();
 	void remove(entity e);
 };
+
+full_wall_mesh load_wall_mesh();
 
 } // phobos
 

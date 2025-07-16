@@ -34,6 +34,30 @@ static vavb describe_layout_f2f2(void *vdata, size_t vsize, GLuint *idata, size_
 	return {va, vb};
 }
 
+static vavb describe_layout_f2_nexto_f2(const void *vdata, size_t vsize, const void *uvdata, size_t uvsize, const GLuint *idata, size_t isize, GLenum usage)
+{
+	GLuint va;
+	glGenVertexArrays(1, &va);
+	glBindVertexArray(va);
+	GLuint vb;
+	glGenBuffers(1, &vb);
+	glBindBuffer(GL_ARRAY_BUFFER, vb);
+	glBufferData(GL_ARRAY_BUFFER, vsize, vdata, usage);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
+	glEnableVertexAttribArray(0);
+	glGenBuffers(1, &vb);
+	glBindBuffer(GL_ARRAY_BUFFER, vb);
+	glBufferData(GL_ARRAY_BUFFER, uvsize, uvdata, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
+	glEnableVertexAttribArray(1);
+	GLuint ib;
+	glGenBuffers(1, &ib);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, isize, idata, GL_STATIC_DRAW);
+	glBindVertexArray(0);
+	return {va, vb};
+}
+
 struct trail_buffers {
 	GLuint va;
 	GLuint wpos;
@@ -89,6 +113,37 @@ static trail_buffers describe_layout_trail(size_t segment_count)
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, tri.size() * sizeof tri[0], tri.data(), GL_STATIC_DRAW);
 	glBindVertexArray(0);
 	return buf;
+}
+
+full_wall_mesh load_wall_mesh()
+{
+	static const glm::vec2 vert[] = {
+		{ -0.9f, -0.9f, },
+		{ +0.9f, -0.9f, },
+		{ +0.9f, +0.9f, },
+		{ -0.1f, +0.9f, },
+		{ +0.1f, +0.3f, },
+		{ -0.9f,  0.0f, },
+	};
+	static const glm::vec2 uv[] = {
+		{ -0.9f, -0.9f, },
+		{ +0.9f, -0.9f, },
+		{ +0.9f, +0.9f, },
+		{ -0.1f, +0.9f, },
+		{ +0.1f, +0.3f, },
+		{ -0.9f,  0.0f, },
+	};
+	static const GLuint indx[] = {
+		0, 1, 5,
+		1, 5, 4,
+		4, 1, 2,
+		2, 4, 3,
+	};
+	return full_wall_mesh{
+		{{std::cbegin(vert), std::cend(vert)}},
+		{ std::cbegin(uv  ), std::cend(uv  ) },
+		{ std::cbegin(indx), std::cend(indx) },
+	};
 }
 
 int render::init()
@@ -289,7 +344,8 @@ int render::init()
 		drawing_[type].emplace_back(0);
 	}
 	trails.trailing_.emplace_back(trail_t{});
-	if (ok == NUM)
+	// wall_mesh filled later
+	if (ok == NUM-1)
 		return 0;
 fail:
 	std::print("[GFX] Failed to load graphics assets\n");
@@ -308,6 +364,7 @@ void render::fini()
 void render::drawable(entity e, object type)
 {
 	assert(type != trail);
+	assert(type != wall_mesh);
 	const std::uint32_t type_idx = type;
 	drawing_[type].emplace_back(e);
 	const std::uint32_t idx = type_idx | drawing_[type].size()-1 << type_shift;
@@ -324,6 +381,57 @@ void render::trailable(entity t, entity ref)
 	add_component(t, system_id::render);
 	const std::uint32_t idx = trail | drawing_[trail].size()-1 << type_shift;
 	reindex(t, system_id::render, idx);
+}
+
+void render::wall(entity e, full_wall_mesh const &mesh)
+{
+	using namespace std::literals;
+	shader_pipeline shader{
+		"#version 410 core\n"
+		"layout(location=0) in vec2 attr_pos;\n"
+		"layout(location=1) in vec2 attr_uv;\n"
+		"out vec2 vert_uv;\n"
+		"uniform mat3 unif_view;\n"
+		"uniform mat3x2 unif_model;\n"
+		"uniform float world_zoom;\n"
+		"void main() {\n"
+			"vert_uv = attr_uv;\n"
+			"mat3 model = mat3(vec3(unif_model[0], 0.0), vec3(unif_model[1], 0.0), vec3(unif_model[2], 1.0));\n"
+			"vec3 pos = world_zoom * unif_view * model * vec3(attr_pos, 1.0);\n"
+			"gl_Position = vec4(pos.xy, 0.0, 1.0);\n"
+		"}\n\0"sv,
+
+		"#version 410 core\n"
+		"in vec2 vert_uv;\n"
+		"out vec4 frag_color;\n"
+		"uniform sampler2D unif_color;\n"
+		"uniform float unif_red_shift;\n"
+		"void main() {\n"
+			"vec4 color = texture(unif_color, vert_uv);\n"
+			"color.r += unif_red_shift;\n"
+			"color.g -= unif_red_shift;\n"
+			"color.b -= unif_red_shift;\n"
+			"frag_color = color;\n"
+		"}\n\0"sv,
+	};
+	unsigned char fill[4] = { 0xd0, 0x90, 0x10, 0xff };
+	image img;
+	img.width = 1;
+	img.height = 1;
+	img.base = fill;
+	img.channels = 4;
+	texture tex{img, shader, "unif_color\0"sv};
+	GLuint va = describe_layout_f2_nexto_f2(
+		mesh.pos.data(), mesh.pos.size() * sizeof(mesh.pos[0]),
+		mesh.uv .data(), mesh.uv .size() * sizeof(mesh.uv [0]),
+		mesh.indices.data(), mesh.indices.size() * sizeof(mesh.indices[0]),
+		GL_STATIC_DRAW
+	).va;
+	ctx[wall_mesh] = per_draw{ va, shader, tex, mesh.indices.size() };
+	add_component(e, system_id::render);
+	drawing_[wall_mesh].emplace_back(e);
+	const std::uint32_t idx = trail | drawing_[wall_mesh].size()-1 << type_shift;
+	reindex(e, system_id::render, idx);
 }
 
 void render::update(float now, float dt)

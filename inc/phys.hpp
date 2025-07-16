@@ -28,9 +28,8 @@ struct triangle
 	enum { bit = 2 };
 };
 
-struct wall_mesh
+struct wall_mesh : std::vector<glm::vec2> // [i;i+1modN] edges
 {
-	std::vector<glm::vec2> boundary; // [i;i+1modN] edges
 	enum { bit = 3 };
 };
 

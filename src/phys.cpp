@@ -75,15 +75,15 @@ bool collision_test(ray const &r1, ray const &r2)
 bool collision_test(circle const &c, wall_mesh const &m)
 {
 	const ray edge{
-		m.boundary.back(),
-		m.boundary[0]-m.boundary.back(),
+		m.back(),
+		m[0]-m.back(),
 	};
 	if (collision_test(c, edge).has_intersection)
 		return true;
-	for (size_t i = 0; i < m.boundary.size()-1; ++i) {
+	for (size_t i = 0; i < m.size()-1; ++i) {
 		const ray edge{
-			m.boundary[i],
-			m.boundary[i+1]-m.boundary[i],
+			m[i],
+			m[i+1]-m[i],
 		};
 		if (collision_test(c, edge).has_intersection) {
 			return true;

@@ -122,6 +122,11 @@ int main()
 	phobos::entity attack = 0;
 	const auto e1 = spawn_enemy(player, {+0.6f,+0.2f});
 	const auto e2 = spawn_enemy(player, {+0.9f,-0.5f});
+	const auto wall = phobos::spawn();
+	const auto mesh = phobos::load_wall_mesh();
+	ng.tfms.transformable(wall, quad_transform({0.0f,0.0f}, {2.0f,2.0f}));
+	ng.render.wall(wall, mesh);
+	ng.phys.collider_wall_mesh(wall, mesh.pos);
 
 	std::print("\n");
 	auto prev_time = glfwGetTime();
