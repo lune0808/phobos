@@ -1,7 +1,7 @@
 DIR = $(shell find inc -type d)
 BINDIR = $(DIR:inc%=bin%)
 LIBS = glfw3 gl
-CPPFLAGS = -MD $(addprefix -I,$(BINDIR)) -I inc $(shell pkg-config --cflags $(LIBS)) -I inc/stb -DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_XYZW_ONLY
+CPPFLAGS = -MMD $(addprefix -I,$(BINDIR)) $(addprefix -I,$(DIR)) $(shell pkg-config --cflags $(LIBS)) -DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_XYZW_ONLY
 CFLAGS =
 CXXFLAGS = -std=c++23 -ggdb3
 LDFLAGS = $(shell pkg-config --libs $(LIBS))
@@ -18,7 +18,8 @@ GCH = $(HDR:inc/%=bin/%.gch)
 
 SRC = $(shell find src -type f)
 OBJ = $(SRC:src/%=bin/%.o)
-DEP = $(OBJ:bin/%.o=bin/%.d)
+
+DEP = $(GCH:bin/%.gch=bin/%.d) $(OBJ:bin/%.o=bin/%.d)
 
 all:: $(BINDIR) $(GCH) $(BIN)
 
@@ -44,6 +45,6 @@ clean::
 	$(RM) -rf bin
 
 $(BINDIR): %:
-	mkdir $@
+	mkdir -p $@
 
 -include $(DEP)
