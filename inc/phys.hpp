@@ -95,7 +95,13 @@ struct phys
 	void collider_wall_mesh(entity e, wall_mesh const &m);
 	void update_colliders();
 
-	std::unordered_map<entity, std::uint32_t> colliding;
+	struct collision_data
+	{
+		entity main;
+		std::uint32_t other_type;
+	};
+
+	std::vector<collision_data> colliding;
 
 	int init();
 	void fini();

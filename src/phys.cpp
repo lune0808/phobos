@@ -198,13 +198,9 @@ void phys::update_colliders()
 	}
 }
 
-static void collision(std::unordered_map<entity, std::uint32_t> *map, entity e, std::uint32_t ibit)
+static void collision(auto *map, entity e, std::uint32_t other)
 {
-	const auto mask = std::uint32_t{1u}<<ibit;
-	auto [at, inserted] = map->emplace(e, mask);
-	if (!inserted) {
-		at->second |= mask;
-	}
+	map->emplace_back(e, other);
 }
 
 void phys::update(float, float dt)

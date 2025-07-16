@@ -358,7 +358,9 @@ void render::update(float now, float dt)
 			auto this_entity = system.tfms.world(e);
 			glUniformMatrix3x2fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
 					1, GL_FALSE, &this_entity[0][0]);
-			const auto red_shift = system.phys.colliding.contains(e)? 0.3f: 0.0f;
+			const auto begin = std::cbegin(system.phys.colliding);
+			const auto end   = std::cend  (system.phys.colliding);
+			const auto red_shift = std::find_if(begin, end, [=] (auto elem) { return elem.main == e; }) != end? 0.3f: 0.0f;
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			if (obj == attack_cone) {
 				const float scale = 1e-2 / dt;
