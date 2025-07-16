@@ -6,14 +6,12 @@
 namespace phobos {
 
 static entity g_cur;
-std::unordered_map<entity, entity_desc> g_entity_mapping;
+std::unordered_map<entity, std::uint32_t> g_entity_mapping[static_cast<size_t>(system_id::NUM)];
 static std::vector<entity> g_on_hold;
 
 entity spawn()
 {
-	const auto e = g_cur++;
-	g_entity_mapping.emplace(e, entity_desc{});
-	return e;
+	return g_cur++;
 }
 
 void despawn(entity e)
@@ -28,14 +26,16 @@ void update()
 #define X(name) if (has_component(e, system_id::name)) system.name.remove(e);
 		PHOBOS_SYSTEMS(X)
 #undef X
-		g_entity_mapping.erase(e);
+		for (size_t type = 0; type < std::size(g_entity_mapping); ++type) {
+			g_entity_mapping[type].erase(e);
+		}
 	}
 	g_on_hold.clear();
 }
 
 bool live(entity e)
 {
-	return e && g_entity_mapping.contains(e);
+	return e && g_entity_mapping[static_cast<size_t>(system_id::tick)].contains(e);
 }
 
 } // phobos

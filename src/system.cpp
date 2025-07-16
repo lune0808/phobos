@@ -3,11 +3,16 @@
 namespace phobos {
 // single definition
 global_systems system;
-extern std::unordered_map<entity, entity_desc> g_entity_mapping;
+extern std::unordered_map<entity, std::uint32_t> g_entity_mapping[static_cast<size_t>(system_id::NUM)];
 
 int init()
 {
-	spawn(); // 0 entity
+	// 0 entity
+	spawn();
+	for (size_t type = 0; type < std::size(g_entity_mapping); ++type) {
+		g_entity_mapping[type].emplace(0, 0);
+	}
+
 	system_id failure_point = system_id::NUM;
 #define X(name) if (system.name.init() != 0) { \
 			failure_point = system_id::name; \
@@ -36,37 +41,34 @@ void update(float now, float dt)
 
 std::uint32_t index(entity e, system_id sys)
 {
-	auto addr = g_entity_mapping.find(e);
-	assert(addr != g_entity_mapping.end());
-	return addr->second.index[static_cast<size_t>(sys)];
+	auto addr = g_entity_mapping[static_cast<size_t>(sys)].find(e);
+	assert(addr != g_entity_mapping[static_cast<size_t>(sys)].end());
+	return addr->second;
 }
 
 void reindex(entity e, system_id sys, std::uint32_t idx)
 {
-	auto addr = g_entity_mapping.find(e);
-	assert(addr != g_entity_mapping.end());
-	addr->second.index[static_cast<size_t>(sys)] = idx;
+	auto addr = g_entity_mapping[static_cast<size_t>(sys)].find(e);
+	assert(addr != g_entity_mapping[static_cast<size_t>(sys)].end());
+	addr->second = idx;
 }
 
 void add_component(entity e, system_id sys)
 {
-	auto addr = g_entity_mapping.find(e);
-	assert(addr != g_entity_mapping.end());
-	addr->second.mask |= 1ul << static_cast<std::uint32_t>(sys);
+	auto [addr, ins] = g_entity_mapping[static_cast<size_t>(sys)].emplace(e, 0);
+	assert(ins);
 }
 
 void del_component(entity e, system_id sys)
 {
-	auto addr = g_entity_mapping.find(e);
-	assert(addr != g_entity_mapping.end());
-	addr->second.mask &= ~(1ul << static_cast<std::uint32_t>(sys));
+	auto addr = g_entity_mapping[static_cast<size_t>(sys)].find(e);
+	assert(addr != g_entity_mapping[static_cast<size_t>(sys)].end());
+	g_entity_mapping[static_cast<size_t>(sys)].erase(addr);
 }
 
 bool has_component(entity e, system_id sys)
 {
-	auto addr = g_entity_mapping.find(e);
-	assert(addr != g_entity_mapping.end());
-	return addr->second.mask & (1ul << static_cast<std::uint32_t>(sys));
+	return g_entity_mapping[static_cast<size_t>(sys)].contains(e);
 }
 
 } // phobos

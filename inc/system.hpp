@@ -36,13 +36,6 @@ extern struct global_systems
 #undef X
 } system;
 
-struct entity_desc
-{
-	std::uint32_t mask;
-	std::uint32_t index[static_cast<size_t>(system_id::NUM)];
-	static_assert(static_cast<size_t>(system_id::NUM) < sizeof(mask)*8, "use a bigger mask");
-};
-
 int init();
 void fini();
 void update(float now, float dt);
