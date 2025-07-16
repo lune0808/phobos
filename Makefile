@@ -30,13 +30,13 @@ bin/%.c.o: src/%.c
 	$(CC) $(CPPFLAGS) -c -o $@ $< $(CFLAGS)
 
 bin/%.cpp.o: src/%.cpp
-	$(CXX) $(CPPFLAGS) -c -o $@ $< $(CXXFLAGS)
-
-bin/%.hpp.gch: inc/%.hpp
-	$(CC) $(CPPFLAGS) -o $@ $< $(CXXFLAGS)
+	$(CC) $(CPPFLAGS) -c -o $@ $< $(CXXFLAGS)
 
 bin/%.h.gch: inc/%.h
 	$(CC) $(CPPFLAGS) -o $@ $< $(CFLAGS)
+
+bin/%.hpp.gch: inc/%.hpp
+	$(CC) $(CPPFLAGS) -o $@ $< $(CXXFLAGS)
 
 run:: $(BIN)
 	$(BIN)
