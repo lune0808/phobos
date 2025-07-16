@@ -89,10 +89,6 @@ void gl::update(float, float)
 {
 }
 
-void gl::clear()
-{
-}
-
 void input::update(float, float)
 {
 	pressed_state.reset();
@@ -108,7 +104,11 @@ bool input::pressed(key k) const
 	return pressed_state.test(static_cast<size_t>(k));
 }
 
-void input::clear()
+void input::remove(std::uint32_t)
+{
+}
+
+void gl::remove(entity)
 {
 }
 

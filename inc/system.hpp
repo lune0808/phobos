@@ -23,7 +23,6 @@ namespace phobos {
 
 
 enum class system_id {
-	none,
 #define X(name) name,
 	PHOBOS_SYSTEMS(X)
 #undef X
@@ -37,10 +36,21 @@ extern struct global_systems
 #undef X
 } system;
 
-system_id init();
+struct entity_desc
+{
+	std::uint32_t mask;
+	std::uint32_t index[static_cast<size_t>(system_id::NUM)];
+	static_assert(static_cast<size_t>(system_id::NUM) < sizeof(mask)*8, "use a bigger mask");
+};
+
+int init();
 void fini();
 void update(float now, float dt);
-void clear();
+std::uint32_t index(entity e, system_id sys);
+void reindex(entity e, system_id sys, std::uint32_t idx);
+void add_component(entity e, system_id sys);
+void del_component(entity e, system_id sys);
+bool has_component(entity e, system_id sys);
 
 } // phobos
 

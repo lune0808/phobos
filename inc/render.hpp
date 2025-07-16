@@ -1,8 +1,7 @@
 #pragma once
 #include <cstdint>
-#include <unordered_map>
-#include <unordered_set>
 #include <glad/gl.h>
+#include <vector>
 #include "shader.hpp"
 #include "texture.hpp"
 #include "window.hpp"
@@ -31,6 +30,9 @@ public:
 		NUM
 	};
 
+	enum : std::uint32_t { type_shift = 3, type_mask = (1<<type_shift) - 1 };
+	static_assert(type_mask >= static_cast<std::uint32_t>(object::NUM)-1, "increase type_shift");
+
 private:
 	struct per_draw
 	{
@@ -43,7 +45,7 @@ private:
 	enum : size_t { TRAIL_MAX_SEGMENTS = 128zu };
 
 	per_draw ctx[NUM];
-	std::unordered_set<entity> drawing_[NUM];
+	std::vector<entity> drawing_[NUM];
 	GLuint attack_cone_mesh_vb;
 
 	struct quad {
@@ -55,11 +57,11 @@ private:
 		quad buf[TRAIL_MAX_SEGMENTS];
 		glm::vec2 timestamp[TRAIL_MAX_SEGMENTS];
 		size_t insert;
-		entity t;
+		entity ref;
 	};
 
 	struct {
-		std::unordered_map<entity, trail_t> trailing_;
+		std::vector<trail_t> trailing_;
 		GLuint wpos;
 		GLuint ts;
 	} trails;
@@ -71,9 +73,9 @@ public:
 	void trailable(entity e, entity ref);
 
 	void update(float now, float dt);
-	void clear();
 	int init();
 	void fini();
+	void remove(entity e);
 };
 
 } // phobos

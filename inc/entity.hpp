@@ -9,7 +9,7 @@ using entity = std::uint32_t;
 entity spawn();
 void despawn(entity);
 void update();
-std::vector<entity> const &on_hold();
+bool live(entity);
 
 } // phobos
 

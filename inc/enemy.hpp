@@ -1,6 +1,6 @@
 #pragma once
 #include "entity.hpp"
-#include <unordered_map>
+#include <vector>
 
 namespace phobos {
 
@@ -9,6 +9,9 @@ struct enemy {
 		dumb0,
 		NUM
 	};
+
+	enum : std::uint32_t { type_shift = 1, type_mask = (1<<type_shift) - 1 };
+	static_assert(type_mask >= static_cast<std::uint32_t>(type_t::NUM)-1, "increase type_shift");
 
 	enum class state_t {
 		idle,
@@ -21,12 +24,13 @@ struct enemy {
 	};
 
 	struct enemy_t {
+		entity id;
 		state_t state;
 		entity slash_speed;
 		float elapsed;
 	};
 
-	std::unordered_map<entity, enemy_t> enemy_[static_cast<size_t>(type_t::NUM)];
+	std::vector<enemy_t> enemy_[static_cast<size_t>(type_t::NUM)];
 	entity player;
 
 	void make_enemy(entity e, type_t type);
@@ -35,7 +39,7 @@ struct enemy {
 	int init();
 	void fini();
 	void update(float now, float dt);
-	void clear();
+	void remove(entity e);
 };
 
 } // phobos

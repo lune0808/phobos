@@ -91,7 +91,7 @@ phobos::entity player_control(phobos::entity attack, phobos::entity player, floa
 		tfm->pos() += offset;
 		ng.render.camera_pos -= offset;
 	}
-	if (ng.input.pressed(phobos::key::K_F) && !ng.tick.live(attack))
+	if (ng.input.pressed(phobos::key::K_F) && !phobos::live(attack))
 		attack = spawn_slash(player);
 	return attack;
 }
@@ -114,7 +114,7 @@ int main()
 {
 	using namespace std::literals;
 	// TODO: use a NUL-terminated string type
-	if (phobos::init() != phobos::system_id::none) return 1;
+	if (phobos::init() != 0) return 1;
 	const auto player = phobos::spawn();
 	ng.render.drawable(player, phobos::render::object::player);
 	ng.tfms.transformable(player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
@@ -136,7 +136,6 @@ int main()
 		phobos::update(now, dt);
 		ng.input.win.draw();
 	}
-	phobos::clear();
 	phobos::fini();
 	std::print("\n");
 }

@@ -7,18 +7,14 @@ namespace phobos {
 
 int enemy::init()
 {
+	for (size_t type = 0; type < static_cast<size_t>(type_t::NUM); ++type) {
+		enemy_[type].emplace_back(0, state_t::idle, 0, 0.0f);
+	}
 	return 0;
 }
 
 void enemy::fini()
 {
-}
-
-void enemy::clear()
-{
-	for (size_t type = 0; type < static_cast<size_t>(type_t::NUM); ++type) {
-		enemy_[type].clear();
-	}
 }
 
 struct transition_t {
@@ -107,14 +103,11 @@ static entity spawn_slash(glm::vec2 dir, entity en)
 
 void enemy::update(float, float dt)
 {
-	for (const auto e : on_hold()) {
-		for (size_t type = 0; type < static_cast<size_t>(type_t::NUM); ++type) {
-			enemy_[type].erase(e);
-		}
-	}
 	auto pl_pos = system.tfms.world(player).pos();
-	for (auto &[id, en] : enemy_[static_cast<size_t>(type_t::dumb0)]) {
-		auto en_pos = system.tfms.world(id).pos();
+	bool first = true;
+	for (auto &e : enemy_[static_cast<size_t>(type_t::dumb0)]) {
+		if (first) { first = false; continue; }
+		auto en_pos = system.tfms.world(e.id).pos();
 		const auto diff = pl_pos - en_pos;
 		const auto len2 = glm::length2(diff);
 		const auto range =
@@ -126,38 +119,53 @@ void enemy::update(float, float dt)
 		const auto evt = (len2 < range*range) ? dumb0_event::player_close:
 				 (len2 < 5.0f * 5.0f) ? dumb0_event::player_visible:
 				 dumb0_event::player_far;
-		const auto trans = transition(en.state, evt);
-		en.elapsed += dt;
-		if (en.elapsed > trans.wait) {
-			en.state = trans.next;
-			en.elapsed = 0.0f;
+		const auto trans = transition(e.state, evt);
+		e.elapsed += dt;
+		if (e.elapsed > trans.wait) {
+			e.state = trans.next;
+			e.elapsed = 0.0f;
 			if (trans.next == state_t::combat_attack_windup) {
-				auto s = spawn_slash(glm::normalize(diff), id);
-				en.slash_speed = s;
+				auto s = spawn_slash(glm::normalize(diff), e.id);
+				e.slash_speed = s;
 			} else if (trans.next == state_t::combat_attack) {
 				const auto speed = 7.0f;
-				const auto tfm = system.tfms.referential(en.slash_speed);
+				const auto tfm = system.tfms.referential(e.slash_speed);
 				assert(tfm);
 				tfm->x().y = speed;
 				tfm->y().x = -speed;
 			}
 		}
-		if (en.state == enemy::state_t::move) {
+		if (e.state == enemy::state_t::move) {
 			const float speed = 1.5f;
-			system.tfms.referential(id)->pos() += dt * speed * glm::normalize(diff);
+			system.tfms.referential(e.id)->pos() += dt * speed * glm::normalize(diff);
 		}
 	}
 }
 
 void enemy::make_enemy(entity e, type_t type)
 {
-	auto [_, ins] = enemy_[static_cast<size_t>(type)].emplace(e, enemy_t{state_t::idle, 0, 0.0f});
-	assert(ins);
+	const std::uint32_t type_idx = static_cast<std::uint32_t>(type);
+	const std::uint32_t idx = type_idx | enemy_[type_idx].size() << type_shift;
+	enemy_[type_idx].emplace_back(e, state_t::idle, 0, 0.0f);
+	add_component(e, system_id::enemy);
+	reindex(e, system_id::enemy, idx);
 }
 
 void enemy::make_player(entity e)
 {
 	player = e;
+}
+
+void enemy::remove(entity e)
+{
+	const std::uint32_t idx = index(e, system_id::enemy);
+	const std::uint32_t type_idx = idx & type_mask;
+	const std::uint32_t swapped_idx = enemy_[type_idx].size()-1;
+	const std::uint32_t removed_idx = idx >> type_shift;
+	enemy_[type_idx][removed_idx] = enemy_[type_idx][swapped_idx];
+	reindex(enemy_[type_idx][removed_idx].id, system_id::enemy, idx);
+	del_component(e, system_id::enemy);
+	enemy_[type_idx].pop_back();
 }
 
 } // phobos

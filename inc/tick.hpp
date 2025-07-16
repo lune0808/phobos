@@ -1,26 +1,22 @@
 #pragma once
 #include "entity.hpp"
-#include <unordered_map>
+#include <vector>
 
 namespace phobos {
 
 class tick
 {
 public:
-	struct expire_in_t { float remaining; };
-	struct follow_t { entity target; };
+	struct expire_in_t { float remaining; entity id; };
 private:
-	std::unordered_map<entity, expire_in_t> expiring_;
-	std::unordered_map<entity, follow_t> following_;
+	std::vector<expire_in_t> expiring_;
 public:
 	int init();
 	void fini();
 	void update(float now, float dt);
-	void clear();
+	void remove(entity e);
 
 	void expire_in(entity e, expire_in_t data);
-	bool live(entity e);
-	void follow(entity e, follow_t data);
 };
 
 } // phobos

@@ -45,7 +45,7 @@ struct input {
 	int init();
 	void fini();
 	void update(float now, float dt);
-	void clear();
+	void remove(std::uint32_t idx);
 
 	window win;
 private:
@@ -56,7 +56,7 @@ struct gl {
 	int init();
 	void fini();
 	void update(float, float);
-	void clear();
+	void remove(entity e);
 };
 
 } // phobos

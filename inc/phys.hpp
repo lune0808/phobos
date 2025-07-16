@@ -52,12 +52,11 @@ struct deriv
 	int init();
 	void fini();
 	void update(float now, float dt);
-	void clear();
+	void remove(entity e);
 
-	std::unordered_map<entity, entity> deriv_;
+	std::vector<std::pair<entity, entity>> deriv_;
 
 	void deriv_from(entity x, entity xprime);
-	entity find(entity x) const;
 };
 
 struct phys
@@ -74,6 +73,7 @@ struct phys
 	struct collider : T
 	{
 		std::uint32_t mask;
+		entity id;
 	};
 
 	// possible better representation
@@ -82,18 +82,19 @@ struct phys
 	// calls into the same one test
 	// instead of storing the masks
 
-	std::unordered_map<entity, collider<circle>> circle_;
-	std::unordered_map<entity, collider<triangle>> triangle_;
-	std::unordered_map<entity, collider<ray>> ray_;
-	std::unordered_map<entity, collider<wall_mesh>> wall_mesh_;
-	std::unordered_map<entity, glm::vec2> speed;
+	// TODO: somehow make that an array
+	std::vector<collider<circle>> circle_;
+	std::vector<collider<triangle>> triangle_;
+	std::vector<collider<ray>> ray_;
+	std::vector<collider<wall_mesh>> wall_mesh_;
+
+	enum : std::uint32_t { type_shift = 2, type_mask = (1<<type_shift) - 1 };
+	static_assert(type_mask >= static_cast<std::uint32_t>(collider<wall_mesh>::bit), "increase type_shift");
 
 	void collider_circle(entity e, std::uint32_t collide_mask);
 	void collider_triangle(entity e, std::uint32_t collide_mask);
 	void collider_ray(entity e, std::uint32_t collide_mask);
 	void collider_wall_mesh(entity e, wall_mesh const &m);
-	void add_speed(entity e, glm::vec2 initial);
-	glm::vec2 *get_speed(entity e);
 	void update_colliders();
 
 	std::unordered_map<entity, std::uint32_t> colliding;
@@ -101,7 +102,7 @@ struct phys
 	int init();
 	void fini();
 	void update(float now, float dt);
-	void clear();
+	void remove(entity e);
 };
 
 } // phobos

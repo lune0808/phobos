@@ -9,6 +9,7 @@ glm::vec2 &transform::  y() { return (*this)[1]; }
 
 int tfms::init()
 {
+	data.emplace_back(transform{});
 	return 0;
 }
 
@@ -18,36 +19,39 @@ void tfms::fini()
 
 void tfms::update(float, float)
 {
-	for (const auto e : on_hold()) {
-		data.erase(e);
-	}
-}
-
-void tfms::clear()
-{
-	data.clear();
 }
 
 void tfms::transformable(entity e, transform tfm)
 {
-	auto [_, inserted] = data.emplace(e, tfm);
-	assert(inserted);
+	tfm.id = e;
+	data.emplace_back(tfm);
+	add_component(e, system_id::tfms);
+	reindex(e, system_id::tfms, data.size()-1);
+}
+
+void tfms::remove(entity e)
+{
+	const std::uint32_t idx = index(e, system_id::tfms);
+	const std::uint32_t swapped_idx = data.size()-1;
+	data[idx] = data[swapped_idx];
+	reindex(data[idx].id, system_id::tfms, idx);
+	del_component(e, system_id::tfms);
+	data.pop_back();
 }
 
 transform *tfms::referential(entity e)
 {
-	auto at = data.find(e);
-	return at != data.end()? &at->second: nullptr;
+	auto at = index(e, system_id::tfms);
+	return &data[at];
 }
 
 transform tfms::world(entity e)
 {
-	auto at = data.find(e);
-	if (at->second.parent) {
-		return world(at->second.parent) * at->second;
+	auto *at = referential(e);
+	if (at->parent) {
+		return world(at->parent) * *at;
 	} else {
-		assert(at != data.end());
-		return at->second;
+		return *at;
 	}
 }
 

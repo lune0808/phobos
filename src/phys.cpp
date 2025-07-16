@@ -95,42 +95,82 @@ bool collision_test(circle const &c, wall_mesh const &m)
 void phys::collider_circle(entity e, std::uint32_t collide_mask)
 {
 	// dynamically updated
-	auto [at, inserted] = circle_.emplace(e, collider<circle>{ circle{}, collide_mask });
-	assert(inserted);
+	const std::uint32_t type_idx = collider<circle>::bit;
+	circle_.emplace_back(collider<circle>{ circle{}, collide_mask, e });
+	const std::uint32_t idx = type_idx | circle_.size()-1 << type_shift;
+	add_component(e, system_id::phys);
+	reindex(e, system_id::phys, idx);
 }
 
 void phys::collider_triangle(entity e, std::uint32_t collide_mask)
 {
-	auto [at, inserted] = triangle_.emplace(e, collider<triangle>{ triangle{}, collide_mask });
-	assert(inserted);
+	const std::uint32_t type_idx = collider<triangle>::bit;
+	triangle_.emplace_back(collider<triangle>{ triangle{}, collide_mask, e });
+	const std::uint32_t idx = type_idx | triangle_.size()-1 << type_shift;
+	add_component(e, system_id::phys);
+	reindex(e, system_id::phys, idx);
 }
 
 void phys::collider_ray(entity e, std::uint32_t collide_mask)
 {
-	auto [at, inserted] = ray_.emplace(e, collider<ray>{ ray{}, collide_mask });
-	assert(inserted);
+	const std::uint32_t type_idx = collider<ray>::bit;
+	ray_.emplace_back(collider<ray>{ ray{}, collide_mask, e });
+	const std::uint32_t idx = type_idx | ray_.size()-1 << type_shift;
+	add_component(e, system_id::phys);
+	reindex(e, system_id::phys, idx);
 }
 
 void phys::collider_wall_mesh(entity e, wall_mesh const &m)
 {
-	auto [at, inserted] = wall_mesh_.emplace(e, collider<wall_mesh>{m, 0});
-	assert(inserted);
+	const std::uint32_t type_idx = collider<wall_mesh>::bit;
+	wall_mesh_.emplace_back(collider<wall_mesh>{ wall_mesh{}, 0, e });
+	const std::uint32_t idx = type_idx | wall_mesh_.size()-1 << type_shift;
+	add_component(e, system_id::phys);
+	reindex(e, system_id::phys, idx);
 }
 
-void phys::add_speed(entity e, glm::vec2 initial)
+void phys::remove(entity e)
 {
-	auto [at, inserted] = speed.emplace(e, initial);
-	assert(inserted);
-}
+	const std::uint32_t idx = index(e, system_id::phys);
+	const std::uint32_t type_idx = idx & type_mask;
+	const std::uint32_t removed_idx = idx >> type_shift;
+	std::uint32_t swapped_idx;
+	switch (type_idx) {
+	case collider<circle>::bit:
+		swapped_idx = circle_.size()-1;
+		circle_[removed_idx] = circle_[swapped_idx];
+		circle_.pop_back();
+		reindex(circle_[removed_idx].id, system_id::phys, idx);
+		break;
+	case collider<triangle>::bit:
+		swapped_idx = triangle_.size()-1;
+		triangle_[removed_idx] = triangle_[swapped_idx];
+		triangle_.pop_back();
+		reindex(triangle_[removed_idx].id, system_id::phys, idx);
+		break;
+	case collider<ray>::bit:
+		swapped_idx = ray_.size()-1;
+		ray_[removed_idx] = ray_[swapped_idx];
+		ray_.pop_back();
+		reindex(ray_[removed_idx].id, system_id::phys, idx);
+		break;
+	case collider<wall_mesh>::bit:
+		swapped_idx = wall_mesh_.size()-1;
+		wall_mesh_[removed_idx] = wall_mesh_[swapped_idx];
+		wall_mesh_.pop_back();
+		reindex(wall_mesh_[removed_idx].id, system_id::phys, idx);
+		break;
+	}
+	del_component(e, system_id::phys);
 
-glm::vec2 *phys::get_speed(entity e)
-{
-	auto at = speed.find(e);
-	return at != speed.end()? &at->second: nullptr;
 }
 
 int phys::init()
 {
+	circle_.emplace_back(collider<circle>{});
+	triangle_.emplace_back(collider<triangle>{});
+	ray_.emplace_back(collider<ray>{});
+	wall_mesh_.emplace_back(collider<wall_mesh>{});
 	return 0;
 }
 
@@ -140,39 +180,28 @@ void phys::fini()
 
 void phys::update_colliders()
 {
-	for (const auto e : on_hold()) {
-		circle_.erase(e);
-		triangle_.erase(e);
-		ray_.erase(e);
-		wall_mesh_.erase(e);
-		speed.erase(e);
-	}
-	for (auto &[e, col] : circle_) {
-		auto tfm = system.tfms.world(e);
+	bool first = true;
+	for (auto &col : circle_) {
+		if (first) { first = false; continue; }
+		auto tfm = system.tfms.world(col.id);
 		col.origin = tfm.pos();
 		col.radius = tfm.x().x * 0.5f;
 	}
-	for (auto &[e, col] : triangle_) {
-		auto tfm = system.tfms.world(e);
+	first = true;
+	for (auto &col : triangle_) {
+		if (first) { first = false; continue; }
+		auto tfm = system.tfms.world(col.id);
 		col.origin = tfm.pos();
 		col.u = tfm.x();
 		col.v = tfm.y();
 	}
-	for (auto &[e, col] : ray_) {
-		auto tfm = system.tfms.world(e);
+	first = true;
+	for (auto &col : ray_) {
+		if (first) { first = false; continue; }
+		auto tfm = system.tfms.world(col.id);
 		col.origin = tfm.pos();
 		col.swept = tfm.x();
 	}
-}
-
-void phys::clear()
-{
-	circle_.clear();
-	triangle_.clear();
-	ray_.clear();
-	wall_mesh_.clear();
-	speed.clear();
-	colliding.clear();
 }
 
 static void collision(std::unordered_map<entity, std::uint32_t> *map, entity e, std::uint32_t ibit)
@@ -188,47 +217,47 @@ void phys::update(float, float dt)
 {
 	colliding.clear();
 	update_colliders();
-	for (auto &[e1, col1] : circle_) {
+	for (auto &col1 : circle_) {
 		if (col1.mask & (1zu<<triangle::bit)) {
-			for (auto &[e2, col2] : triangle_) {
+			for (auto &col2 : triangle_) {
 				if (collision_test(col1, col2)) {
-					collision(&colliding, e1, triangle::bit);
-					collision(&colliding, e2, circle::bit);
+					collision(&colliding, col1.id, triangle::bit);
+					collision(&colliding, col2.id, circle::bit);
 				}
 			}
 		}
 		if (col1.mask & (1zu<<ray::bit)) {
-			for (auto &[e2, col2] : ray_) {
+			for (auto &col2 : ray_) {
 				if (collision_test(col1, col2).has_intersection) {
-					collision(&colliding, e1, ray::bit);
-					collision(&colliding, e2, circle::bit);
+					collision(&colliding, col1.id, ray::bit);
+					collision(&colliding, col2.id, circle::bit);
 				}
 			}
 		}
 		if (col1.mask & (1zu<<wall_mesh::bit)) {
-			for (auto &[e2, col2] : wall_mesh_) {
+			for (auto &col2 : wall_mesh_) {
 				if (collision_test(col1, col2)) {
-					collision(&colliding, e1, wall_mesh::bit);
-					collision(&colliding, e2, circle::bit);
+					collision(&colliding, col1.id, wall_mesh::bit);
+					collision(&colliding, col2.id, circle::bit);
 				}
 			}
 		}
 	}
-	for (auto &[e1, col1] : triangle_) {
+	for (auto &col1 : triangle_) {
 		if (col1.mask & (1zu<<circle::bit)) {
-			for (auto &[e2, col2] : circle_) {
+			for (auto &col2 : circle_) {
 				if (collision_test(col2, col1)) {
-					collision(&colliding, e1, circle::bit);
-					collision(&colliding, e2, triangle::bit);
+					collision(&colliding, col1.id, circle::bit);
+					collision(&colliding, col2.id, triangle::bit);
 				}
 			}
 		}
 		if (col1.mask & (1zu<<ray::bit)) {
 			// approximate tests assuming small triangles
-			for (auto &[e2, col2] : ray_) {
+			for (auto &col2 : ray_) {
 				if (collision_test(ray{col1.origin, col1.u}, col2)) {
-					collision(&colliding, e1, ray::bit);
-					collision(&colliding, e2, triangle::bit);
+					collision(&colliding, col1.id, ray::bit);
+					collision(&colliding, col2.id, triangle::bit);
 				}
 			}
 		}
@@ -237,6 +266,7 @@ void phys::update(float, float dt)
 
 int deriv::init()
 {
+	deriv_.emplace_back(0, 0);
 	return 0;
 }
 
@@ -246,10 +276,9 @@ void deriv::fini()
 
 void deriv::update(float, float dt)
 {
-	for (const auto e : on_hold()) {
-		deriv_.erase(e);
-	}
+	bool first = true;
 	for (const auto [x, xprime] : deriv_) {
+		if (first) { first = false; continue; }
 		auto &tx = *system.tfms.referential(x);
 		// FIXME: not accurate for rotations?
 		const auto &txprime = *system.tfms.referential(xprime);
@@ -257,21 +286,21 @@ void deriv::update(float, float dt)
 	}
 }
 
-void deriv::clear()
-{
-	deriv_.clear();
-}
-
 void deriv::deriv_from(entity x, entity xprime)
 {
-	auto [_, inserted] = deriv_.emplace(x, xprime);
-	assert(inserted);
+	deriv_.emplace_back(x, xprime);
+	add_component(x, system_id::deriv);
+	reindex(x, system_id::deriv, deriv_.size()-1);
 }
 
-entity deriv::find(entity x) const
+void deriv::remove(entity e)
 {
-	auto at = deriv_.find(x);
-	return (at != deriv_.end()) ? at->second : 0;
+	const std::uint32_t idx = index(e, system_id::deriv);
+	const std::uint32_t swapped_idx = deriv_.size()-1;
+	deriv_[idx] = deriv_[swapped_idx];
+	reindex(deriv_[idx].first, system_id::deriv, idx);
+	deriv_.pop_back();
+	del_component(e, system_id::deriv);
 }
 
 } // phobos

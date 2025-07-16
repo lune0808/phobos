@@ -288,6 +288,10 @@ int render::init()
 		++ok;
 	}
 
+	for (size_t type = 0; type < NUM; ++type) {
+		drawing_[type].emplace_back(0);
+	}
+	trails.trailing_.emplace_back(trail_t{});
 	if (ok == NUM)
 		return 0;
 fail:
@@ -307,28 +311,30 @@ void render::fini()
 void render::drawable(entity e, object type)
 {
 	assert(type != trail);
-	const auto [addr, inserted] = drawing_[type].emplace(e);
-	assert(inserted);
+	const std::uint32_t type_idx = type;
+	drawing_[type].emplace_back(e);
+	const std::uint32_t idx = type_idx | drawing_[type].size()-1 << type_shift;
+	add_component(e, system_id::render);
+	reindex(e, system_id::render, idx);
 }
 
-void render::clear()
+void render::trailable(entity t, entity ref)
 {
-	for (size_t obj = 0; obj < NUM; ++obj) {
-		drawing_[obj].clear();
-	}
-	trails.trailing_.clear();
+	// timestamp being 0.0 means effectively nothing is drawn
+	drawing_[trail].emplace_back(t);
+	auto &at = trails.trailing_.emplace_back(trail_t{});
+	at.ref = ref;
+	add_component(t, system_id::render);
+	const std::uint32_t idx = trail | drawing_[trail].size()-1 << type_shift;
+	reindex(t, system_id::render, idx);
 }
 
 void render::update(float now, float dt)
 {
-	for (const auto e : on_hold()) {
-		for (size_t obj = 0; obj < NUM; ++obj) {
-			drawing_[obj].erase(e);
-		}
-		trails.trailing_.erase(e);
-	}
-	for (auto &[e, data] : trails.trailing_) {
-		auto ref = system.tfms.world(e);
+	bool first = true;
+	for (auto &data : trails.trailing_) {
+		if (first) { first = false; continue; }
+		auto ref = system.tfms.world(data.ref);
 		data.buf[data.insert].base = ref.pos();
 		data.buf[data.insert].offs = ref.pos() + ref.y();
 		data.timestamp[data.insert] = glm::vec2{now, now};
@@ -351,7 +357,9 @@ void render::update(float now, float dt)
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniform1f(glGetUniformLocation(this_draw.shader.id, "world_zoom"), world_zoom);
+		bool first = true;
 		if (obj != trail) for (const auto e: drawing_[obj]) {
+			if (first) { first = false; continue; }
 			auto this_entity = system.tfms.world(e);
 			glUniformMatrix3x2fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
 					1, GL_FALSE, &this_entity[0][0]);
@@ -365,14 +373,15 @@ void render::update(float now, float dt)
 				glBufferSubData(GL_ARRAY_BUFFER, sizeof(float[4]), sizeof slash_tail, &slash_tail);
 			} else if (obj == hp_bar) {
 				const auto parent = system.tfms.referential(e)->parent;
-				const auto hp = system.hp.living_.find(parent)->second;
+				const auto hp = system.hp.living_[index(parent, system_id::hp)];
 				glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_fullness"), hp.current / hp.max);
 			}
 			glDrawElements(GL_TRIANGLES, this_draw.tricount, GL_UNSIGNED_INT, nullptr);
 		} else {
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "now"), now);
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "max_dt"), 0.3f);
-			for (auto &[e, data] : trails.trailing_) {
+			for (auto &data : trails.trailing_) {
+				if (first) { first = false; continue; }
 				const auto to_end = (TRAIL_MAX_SEGMENTS-data.insert);
 				const auto from_start = data.insert;
 				glBindBuffer(GL_ARRAY_BUFFER, trails.wpos);
@@ -387,13 +396,20 @@ void render::update(float now, float dt)
 	}
 }
 
-void render::trailable(entity t, entity ref)
+void render::remove(entity e)
 {
-	// timestamp being 0.0 means effectively nothing is drawn
-	auto [at, inserted] = trails.trailing_.emplace(ref, trail_t{});
-	assert(inserted);
-	auto trail = &at->second;
-	trail->t = t;
+	const std::uint32_t idx = index(e, system_id::render);
+	const std::uint32_t type_idx = idx & type_mask;
+	const std::uint32_t removed_idx = idx >> type_shift;
+	const std::uint32_t swapped_idx = drawing_[type_idx].size()-1;
+	drawing_[type_idx][removed_idx] = drawing_[type_idx][swapped_idx];
+	reindex(drawing_[type_idx][removed_idx], system_id::render, idx);
+	drawing_[type_idx].pop_back();
+	if (type_idx == trail) {
+		trails.trailing_[removed_idx] = trails.trailing_[swapped_idx];
+		trails.trailing_.pop_back();
+	}
+	del_component(e, system_id::render);
 }
 
 } // phobos

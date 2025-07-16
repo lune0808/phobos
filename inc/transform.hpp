@@ -1,6 +1,6 @@
 #pragma once
 #include "entity.hpp"
-#include <unordered_map>
+#include <vector>
 #include <glm/glm.hpp>
 
 namespace phobos {
@@ -13,6 +13,7 @@ struct transform : glm::mat3x2
 	friend transform operator*(transform l, transform r);
 
 	entity parent;
+	entity id;
 };
 
 struct tfms
@@ -20,9 +21,9 @@ struct tfms
 	int init();
 	void fini();
 	void update(float, float);
-	void clear();
+	void remove(entity e);
 
-	std::unordered_map<entity, transform> data;
+	std::vector<transform> data;
 
 	void transformable(entity e, transform tfm);
 	transform *referential(entity e);
