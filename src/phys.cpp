@@ -3,35 +3,30 @@
 
 namespace phobos {
 
-ray_circle_intersection collision_test(circle const &c, ray const &r)
+bool collision_test(circle const &c, ray const &r)
 {
 	const auto diff = r.origin - c.origin;
 	const auto swept2 = glm::length2(r.swept);
 	const auto diff2 = glm::length2(diff);
 	const auto dot = glm::dot(diff, r.swept);
 	const auto delta_over_4 = dot * dot - swept2 * (diff2 - c.radius * c.radius);
-	ray_circle_intersection result;
 	if (delta_over_4 < 0) {
-		result.has_intersection = false;
-		return result;
+		return false;
 	}
 	const auto root = std::sqrt(delta_over_4);
 	const auto time_lo = (-dot - root) / swept2;
 	const auto time_hi = (-dot + root) / swept2;
 	if (time_hi < 0.0f) {
-		result.has_intersection = false;
-		return result;
+		return false;
 	} else if (time_lo > 1.0f) {
-		result.has_intersection = false;
-		return result;
+		return false;
 	}
-	result.has_intersection = true;
 	if (time_hi <= 1.0f) {
-		result.time = time_hi;
-		return result;
+		// time_hi
+		return true;
 	} else {
-		result.time = time_lo;
-		return result;
+		// time_lo
+		return true;
 	}
 }
 
@@ -48,13 +43,19 @@ bool collision_test(circle const &c, triangle const &t)
 	if (side1 > 0.0f && side2 < 0.0f && side3 > 0.0f)
 		return true;
 	// triangle edge on circle boundary
-	if (collision_test(c, ray{ t.origin, t.u }).has_intersection)
+	if (collision_test(c, ray{ t.origin, t.u }))
 		return true;
-	if (collision_test(c, ray{ t.origin, t.v }).has_intersection)
+	if (collision_test(c, ray{ t.origin, t.v }))
 		return true;
-	if (collision_test(c, ray{ t.origin+t.u, t.v-t.u }).has_intersection)
+	if (collision_test(c, ray{ t.origin+t.u, t.v-t.u }))
 		return true;
 	return false;
+}
+
+bool collision_test(circle const &c1, circle const &c2)
+{
+	const auto diff = c1.origin - c2.origin;
+	return glm::length2(diff) <= c1.radius + c2.radius;
 }
 
 bool collision_test(ray const &r1, ray const &r2)
@@ -72,7 +73,7 @@ bool collision_test(ray const &r1, ray const &r2)
 	    && (0.0f >= minus_t2 && minus_t2 >= -1.0f);
 }
 
-bool collision_test(circle const &c, wall_mesh const &m)
+bool collision_test(auto const &c, wall_mesh const &m)
 {
 	// FIXME: yuck
 	if (m.size() < 2)
@@ -81,46 +82,49 @@ bool collision_test(circle const &c, wall_mesh const &m)
 		m.back(),
 		m[0]-m.back(),
 	};
-	if (collision_test(c, edge).has_intersection)
+	if (collision_test(c, edge))
 		return true;
 	for (size_t i = 0; i < m.size()-1; ++i) {
 		const ray edge{
 			m[i],
 			m[i+1]-m[i],
 		};
-		if (collision_test(c, edge).has_intersection) {
+		if (collision_test(c, edge)) {
 			return true;
 		}
 	}
 	return false;
 }
 
-void phys::collider_circle(entity e, std::uint32_t collide_mask)
+bool collision_test(triangle const &t, ray const &r)
+{
+	// assumes t is thin
+	return collision_test(ray{t.origin, t.u}, r);
+}
+
+void phys::collider_circle(entity e)
 {
 	// dynamically updated
-	collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<circle>::bit;
-	circle_.emplace_back(collider<circle>{ circle{}, collide_mask, e });
+	circle_.emplace_back(collider<circle>{ circle{}, e });
 	const std::uint32_t idx = type_idx | circle_.size()-1 << type_shift;
 	add_component(e, system_id::phys);
 	reindex(e, system_id::phys, idx);
 }
 
-void phys::collider_triangle(entity e, std::uint32_t collide_mask)
+void phys::collider_triangle(entity e)
 {
-	collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<triangle>::bit;
-	triangle_.emplace_back(collider<triangle>{ triangle{}, collide_mask, e });
+	triangle_.emplace_back(collider<triangle>{ triangle{}, e });
 	const std::uint32_t idx = type_idx | triangle_.size()-1 << type_shift;
 	add_component(e, system_id::phys);
 	reindex(e, system_id::phys, idx);
 }
 
-void phys::collider_ray(entity e, std::uint32_t collide_mask)
+void phys::collider_ray(entity e)
 {
-	collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<ray>::bit;
-	ray_.emplace_back(collider<ray>{ ray{}, collide_mask, e });
+	ray_.emplace_back(collider<ray>{ ray{}, e });
 	const std::uint32_t idx = type_idx | ray_.size()-1 << type_shift;
 	add_component(e, system_id::phys);
 	reindex(e, system_id::phys, idx);
@@ -128,9 +132,8 @@ void phys::collider_ray(entity e, std::uint32_t collide_mask)
 
 void phys::collider_wall_mesh(entity e, wall_mesh const &m)
 {
-	std::uint32_t collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<wall_mesh>::bit;
-	wall_mesh_.emplace_back(collider<wall_mesh>{ m, collide_mask, e });
+	wall_mesh_.emplace_back(collider<wall_mesh>{ m, e });
 	const std::uint32_t idx = type_idx | wall_mesh_.size()-1 << type_shift;
 	add_component(e, system_id::phys);
 	reindex(e, system_id::phys, idx);
@@ -212,45 +215,29 @@ void phys::update(float, float dt)
 {
 	colliding.clear();
 	update_colliders();
-	for (auto &col1 : circle_) {
-		if (col1.mask & (1zu<<triangle::bit)) {
-			for (auto &col2 : triangle_) {
-				if (collision_test(col1, col2)) {
-					collision(&colliding, col1.id, col2.id);
-				}
+#define INNERLOOP(type) do \
+		for (auto &col2 : type##_) { \
+			if (collision_test(col1, col2)) { \
+				collision(&colliding, col1.id, col2.id); \
+			} \
+		} while (0)
+
+	for (size_t i1 = 0; i1 < circle_.size(); ++i1) {
+		auto &col1 = circle_[i1];
+		for (size_t i2 = i1+1; i2 < circle_.size(); ++i2) {
+			auto &col2 = circle_[i2];
+			if (collision_test(col1, col2)) {
+				collision(&colliding, col1.id, col2.id);
 			}
 		}
-		if (col1.mask & (1zu<<ray::bit)) {
-			for (auto &col2 : ray_) {
-				if (collision_test(col1, col2).has_intersection) {
-					collision(&colliding, col1.id, col2.id);
-				}
-			}
-		}
-		if (col1.mask & (1zu<<wall_mesh::bit)) {
-			for (auto &col2 : wall_mesh_) {
-				if (collision_test(col1, col2)) {
-					collision(&colliding, col1.id, col2.id);
-				}
-			}
-		}
+		INNERLOOP(triangle);
+		INNERLOOP(ray);
+		INNERLOOP(wall_mesh);
 	}
-	for (auto &col1 : triangle_) {
-		if (col1.mask & (1zu<<circle::bit)) {
-			for (auto &col2 : circle_) {
-				if (collision_test(col2, col1)) {
-					collision(&colliding, col1.id, col2.id);
-				}
-			}
-		}
-		if (col1.mask & (1zu<<ray::bit)) {
-			// approximate tests assuming small triangles
-			for (auto &col2 : ray_) {
-				if (collision_test(ray{col1.origin, col1.u}, col2)) {
-					collision(&colliding, col1.id, col2.id);
-				}
-			}
-		}
+	for (size_t i1 = 0; i1 < triangle_.size(); ++i1) {
+		auto &col1 = triangle_[i1];
+		INNERLOOP(ray);
+		INNERLOOP(wall_mesh);
 	}
 }
 

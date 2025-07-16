@@ -91,7 +91,7 @@ static entity spawn_slash(glm::vec2 dir, entity en)
 	system.tfms.transformable(cone_speed, {{{0.0f, windspeed}, {-windspeed, 0.0f}, zero}, 0});
 	system.deriv.deriv_from(cone, cone_speed);
 	system.tick.expire_in(cone_speed, {lifetime});
-	system.phys.collider_triangle(cone, phys::mask_v<circle>);
+	system.phys.collider_triangle(cone);
 	const auto trail = spawn();
 	system.tfms.transformable(trail, {});
 	system.tick.expire_in(trail, {lifetime});

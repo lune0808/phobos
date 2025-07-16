@@ -33,13 +33,7 @@ struct wall_mesh : std::vector<glm::vec2> // [i;i+1modN] edges
 	enum { bit = 3 };
 };
 
-struct ray_circle_intersection
-{
-	float time;
-	bool has_intersection;
-};
-
-ray_circle_intersection collision_test(circle const &c, ray const &r);
+bool collision_test(circle const &c, ray const &r);
 bool collision_test(circle const &c, triangle const &t);
 bool collision_test(ray const &r1, ray const &r2);
 bool collision_test(circle const &c, wall_mesh const &m);
@@ -58,18 +52,9 @@ struct deriv
 
 struct phys
 {
-	template <typename ...Colliders>
-	struct mask {
-		enum { value = ((1zu << Colliders::bit) | ...) };
-	};
-
-	template <typename ...Colliders>
-	static constexpr size_t mask_v = mask<Colliders...>::value;
-
 	template <typename T>
 	struct collider : T
 	{
-		std::uint32_t mask;
 		entity id;
 	};
 
@@ -88,9 +73,9 @@ struct phys
 	enum : std::uint32_t { type_shift = 2, type_mask = (1<<type_shift) - 1 };
 	static_assert(type_mask >= static_cast<std::uint32_t>(collider<wall_mesh>::bit), "increase type_shift");
 
-	void collider_circle(entity e, std::uint32_t collide_mask);
-	void collider_triangle(entity e, std::uint32_t collide_mask);
-	void collider_ray(entity e, std::uint32_t collide_mask);
+	void collider_circle(entity e);
+	void collider_triangle(entity e);
+	void collider_ray(entity e);
 	void collider_wall_mesh(entity e, wall_mesh const &m);
 	std::uint32_t collider_type(entity e);
 	void update_colliders();

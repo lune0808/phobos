@@ -47,7 +47,7 @@ phobos::entity spawn_slash(phobos::entity player)
 
 	ng.tfms.transformable(cone, {{swing, swing_tail, {0.0f,0.0f}}, hand});
 	ng.render.drawable(cone, phobos::render::object::attack_cone);
-	ng.phys.collider_triangle(cone, phobos::phys::mask_v<phobos::circle>);
+	ng.phys.collider_triangle(cone);
 	ng.tick.expire_in(cone, {lifetime});
 
 	ng.tfms.transformable(cone_speed, {{{0.0f, speed}, {-speed, 0.0f}, {0.0f, 0.0f}}, 0});
@@ -100,7 +100,7 @@ phobos::entity spawn_enemy(phobos::entity player, glm::vec2 pos)
 	const auto enemy = phobos::spawn();
 	ng.tfms.transformable(enemy, quad_transform(pos, {0.5f,0.5f}));
 	ng.render.drawable(enemy, phobos::render::object::enemy);
-	ng.phys.collider_circle(enemy, 0);
+	ng.phys.collider_circle(enemy);
 	ng.enemy.make_enemy(enemy, phobos::enemy::type_t::dumb0);
 	// ng.hp.damageable(enemy, 3.0f);
 	// const auto hp_bar = phobos::spawn();
@@ -117,7 +117,7 @@ int main()
 	const auto player = phobos::spawn();
 	ng.render.drawable(player, phobos::render::object::player);
 	ng.tfms.transformable(player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
-	ng.phys.collider_circle(player, phobos::phys::mask_v<phobos::wall_mesh>);
+	ng.phys.collider_circle(player);
 	ng.enemy.make_player(player);
 	phobos::entity attack = 0;
 	const auto e1 = spawn_enemy(player, {+0.6f,+0.2f});
