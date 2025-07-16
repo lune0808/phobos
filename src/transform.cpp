@@ -9,7 +9,6 @@ glm::vec2 &transform::  y() { return (*this)[1]; }
 
 int tfms::init()
 {
-	data.emplace_back(transform{});
 	return 0;
 }
 

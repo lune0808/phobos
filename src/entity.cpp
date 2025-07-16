@@ -10,7 +10,7 @@ static std::vector<entity> g_on_hold;
 
 entity spawn()
 {
-	return g_cur++;
+	return ++g_cur;
 }
 
 void despawn(entity e)

@@ -5,8 +5,6 @@ namespace phobos {
 
 int hp::init()
 {
-	living_.emplace_back(0.0f, 0.0f, 0);
-	id.emplace_back(0);
 	return 0;
 }
 

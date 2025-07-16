@@ -15,7 +15,6 @@ void tick::expire_in(entity e, expire_in_t data)
 
 int tick::init()
 {
-	expiring_.emplace_back(std::numeric_limits<float>::infinity(), 0);
 	return 0;
 }
 

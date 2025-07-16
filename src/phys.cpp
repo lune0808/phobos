@@ -98,6 +98,7 @@ bool collision_test(circle const &c, wall_mesh const &m)
 void phys::collider_circle(entity e, std::uint32_t collide_mask)
 {
 	// dynamically updated
+	collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<circle>::bit;
 	circle_.emplace_back(collider<circle>{ circle{}, collide_mask, e });
 	const std::uint32_t idx = type_idx | circle_.size()-1 << type_shift;
@@ -107,6 +108,7 @@ void phys::collider_circle(entity e, std::uint32_t collide_mask)
 
 void phys::collider_triangle(entity e, std::uint32_t collide_mask)
 {
+	collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<triangle>::bit;
 	triangle_.emplace_back(collider<triangle>{ triangle{}, collide_mask, e });
 	const std::uint32_t idx = type_idx | triangle_.size()-1 << type_shift;
@@ -116,6 +118,7 @@ void phys::collider_triangle(entity e, std::uint32_t collide_mask)
 
 void phys::collider_ray(entity e, std::uint32_t collide_mask)
 {
+	collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<ray>::bit;
 	ray_.emplace_back(collider<ray>{ ray{}, collide_mask, e });
 	const std::uint32_t idx = type_idx | ray_.size()-1 << type_shift;
@@ -125,8 +128,9 @@ void phys::collider_ray(entity e, std::uint32_t collide_mask)
 
 void phys::collider_wall_mesh(entity e, wall_mesh const &m)
 {
+	std::uint32_t collide_mask = 0xfffffffful;
 	const std::uint32_t type_idx = collider<wall_mesh>::bit;
-	wall_mesh_.emplace_back(collider<wall_mesh>{ m, 0, e });
+	wall_mesh_.emplace_back(collider<wall_mesh>{ m, collide_mask, e });
 	const std::uint32_t idx = type_idx | wall_mesh_.size()-1 << type_shift;
 	add_component(e, system_id::phys);
 	reindex(e, system_id::phys, idx);
@@ -142,26 +146,26 @@ void phys::remove(entity e)
 	case collider<circle>::bit:
 		swapped_idx = circle_.size()-1;
 		circle_[removed_idx] = circle_[swapped_idx];
-		circle_.pop_back();
 		reindex(circle_[removed_idx].id, system_id::phys, idx);
+		circle_.pop_back();
 		break;
 	case collider<triangle>::bit:
 		swapped_idx = triangle_.size()-1;
 		triangle_[removed_idx] = triangle_[swapped_idx];
-		triangle_.pop_back();
 		reindex(triangle_[removed_idx].id, system_id::phys, idx);
+		triangle_.pop_back();
 		break;
 	case collider<ray>::bit:
 		swapped_idx = ray_.size()-1;
 		ray_[removed_idx] = ray_[swapped_idx];
-		ray_.pop_back();
 		reindex(ray_[removed_idx].id, system_id::phys, idx);
+		ray_.pop_back();
 		break;
 	case collider<wall_mesh>::bit:
 		swapped_idx = wall_mesh_.size()-1;
 		wall_mesh_[removed_idx] = wall_mesh_[swapped_idx];
-		wall_mesh_.pop_back();
 		reindex(wall_mesh_[removed_idx].id, system_id::phys, idx);
+		wall_mesh_.pop_back();
 		break;
 	}
 	del_component(e, system_id::phys);
@@ -170,10 +174,6 @@ void phys::remove(entity e)
 
 int phys::init()
 {
-	circle_.emplace_back(collider<circle>{});
-	triangle_.emplace_back(collider<triangle>{});
-	ray_.emplace_back(collider<ray>{});
-	wall_mesh_.emplace_back(collider<wall_mesh>{});
 	return 0;
 }
 
@@ -203,6 +203,7 @@ void phys::update_colliders()
 
 static void collision(auto *map, entity e, entity other)
 {
+	assert(e && other);
 	map->emplace_back(e, other);
 	map->emplace_back(other, e);
 }
@@ -255,7 +256,6 @@ void phys::update(float, float dt)
 
 int deriv::init()
 {
-	deriv_.emplace_back(0, 0);
 	return 0;
 }
 
@@ -286,8 +286,8 @@ void deriv::remove(entity e)
 	const std::uint32_t swapped_idx = deriv_.size()-1;
 	deriv_[idx] = deriv_[swapped_idx];
 	reindex(deriv_[idx].first, system_id::deriv, idx);
-	deriv_.pop_back();
 	del_component(e, system_id::deriv);
+	deriv_.pop_back();
 }
 
 std::uint32_t phys::collider_type(entity e)

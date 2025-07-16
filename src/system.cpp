@@ -7,12 +7,6 @@ extern std::unordered_map<entity, std::uint32_t> g_entity_mapping[static_cast<si
 
 int init()
 {
-	// 0 entity
-	spawn();
-	for (size_t type = 0; type < std::size(g_entity_mapping); ++type) {
-		g_entity_mapping[type].emplace(0, 0);
-	}
-
 	system_id failure_point = system_id::NUM;
 #define X(name) if (system.name.init() != 0) { \
 			failure_point = system_id::name; \

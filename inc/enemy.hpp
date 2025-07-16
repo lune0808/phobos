@@ -4,6 +4,7 @@
 
 namespace phobos {
 
+// TODO: rename to fsm
 struct enemy {
 	enum class type_t {
 		dumb0,
@@ -20,6 +21,11 @@ struct enemy {
 		combat_attack_windup,
 		combat_attack,
 		combat_attack_cooldown,
+		NUM
+	};
+
+	enum class event_t {
+		collide_any,
 		NUM
 	};
 
@@ -40,6 +46,37 @@ struct enemy {
 	void fini();
 	void update(float now, float dt);
 	void remove(entity e);
+};
+
+struct dispatch
+{
+	int init();
+	void fini();
+	void update(float now, float dt);
+	void remove(entity e);
+
+	// TODO: maybe later on give the ability to listen
+	// to collisions matching a certain tag mask
+
+	// with = 0 means test for any collision
+	void listen_collision(entity e, entity with, std::uint32_t payload);
+
+	struct event_collision
+	{
+		entity e;
+		std::uint32_t payload;
+	};
+
+	std::vector<event_collision> collision;
+
+private:
+	struct listening_collision_t {
+		entity e;
+		entity with;
+		std::uint32_t payload;
+	};
+
+	std::vector<listening_collision_t> listening_collision;
 };
 
 } // phobos

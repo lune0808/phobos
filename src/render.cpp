@@ -341,10 +341,6 @@ int render::init()
 		++ok;
 	}
 
-	for (size_t type = 0; type < NUM; ++type) {
-		drawing_[type].emplace_back(0);
-	}
-	trails.trailing_.emplace_back(trail_t{});
 	// wall_mesh filled later
 	if (ok == NUM-1)
 		return 0;
@@ -462,14 +458,13 @@ void render::update(float now, float dt)
 		glBindVertexArray(this_draw.va);
 		glUniformMatrix3fv(glGetUniformLocation(this_draw.shader.id, "unif_view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniform1f(glGetUniformLocation(this_draw.shader.id, "world_zoom"), world_zoom);
-		if (obj != trail) for (size_t i = 1; i < drawing_[obj].size(); ++i) {
-			const auto e = drawing_[obj][i];
+		if (obj != trail) for (const auto e : drawing_[obj]) {
 			auto this_entity = system.tfms.world(e);
 			glUniformMatrix3x2fv(glGetUniformLocation(this_draw.shader.id, "unif_model"),
 					1, GL_FALSE, &this_entity[0][0]);
 			const auto begin = std::cbegin(system.phys.colliding);
 			const auto end   = std::cend  (system.phys.colliding);
-			const auto red_shift = std::find_if(begin, end, [=] (auto elem) { return elem.main == e; }) != end? 0.3f: 0.0f;
+			const auto red_shift = std::find_if(begin, end, [=] (auto elem) { return elem.main == e | elem.other == e; }) != end? 0.3f: 0.0f;
 			// TODO: this should be a FSM hurt state to avoid searching every collision every time as well as handle the cooldown
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			if (obj == attack_cone) {
@@ -487,8 +482,7 @@ void render::update(float now, float dt)
 		} else {
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "now"), now);
 			glUniform1f(glGetUniformLocation(this_draw.shader.id, "max_dt"), 0.3f);
-			for (size_t i = 1; i < trails.trailing_.size(); ++i) {
-				auto &data = trails.trailing_[i];
+			for (const auto &data : trails.trailing_) {
 				const auto to_end = (TRAIL_MAX_SEGMENTS-data.insert);
 				const auto from_start = data.insert;
 				glBindBuffer(GL_ARRAY_BUFFER, trails.wpos);
