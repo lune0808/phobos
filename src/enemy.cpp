@@ -14,11 +14,6 @@ void enemy::fini()
 {
 }
 
-struct transition_t {
-	enemy::state_t next;
-	float wait;
-};
-
 enum class dumb0_event {
 	player_far,
 	player_visible,
@@ -27,6 +22,11 @@ enum class dumb0_event {
 };
 
 #if 0
+struct transition_t {
+	enemy::state_t next;
+	float wait;
+};
+
 static transition_t transition(enemy::state_t cur, dumb0_event evt)
 {
 	static const transition_t tbl[dumb0_event::NUM][enemy::state_t::NUM] =
@@ -100,25 +100,69 @@ static entity spawn_slash(glm::vec2 dir, entity en)
 	return cone_speed;
 }
 
+struct transition_t
+{
+	enemy::state_t next;
+	std::uint32_t consumed;
+};
+
+static transition_t transition(enemy::state_t s, enemy::event_t e)
+{
+	static const transition_t tbl[static_cast<size_t>(enemy::event_t::NUM)][static_cast<size_t>(enemy::state_t::NUM)] = {
+		{
+			{ enemy::state_t::idle       , 1 },
+			{ enemy::state_t::move       , 1 },
+			{ enemy::state_t::combat_idle, 1 },
+			{ enemy::state_t::combat_idle, 1 },
+			{ enemy::state_t::combat_idle, 1 },
+			{ enemy::state_t::combat_idle, 1 },
+		},
+		{
+			{ enemy::state_t::combat_idle, 2 },
+			{ enemy::state_t::combat_idle, 2 },
+			{ enemy::state_t::combat_idle, 2 },
+			{ enemy::state_t::combat_idle, 2 },
+			{ enemy::state_t::combat_idle, 2 },
+			{ enemy::state_t::combat_idle, 2 },
+		},
+		{
+			{ enemy::state_t::move       , 1 },
+			{ enemy::state_t::move       , 1 },
+			{ enemy::state_t::move       , 1 },
+			{ enemy::state_t::move       , 1 },
+			{ enemy::state_t::move       , 1 },
+			{ enemy::state_t::move       , 1 },
+		},
+		{
+			{ enemy::state_t::idle       , 1 },
+			{ enemy::state_t::move       , 1 },
+			{ enemy::state_t::combat_idle, 1 },
+			{ enemy::state_t::combat_idle, 1 },
+			{ enemy::state_t::combat_idle, 1 },
+			{ enemy::state_t::combat_idle, 1 },
+		},
+	};
+	return tbl[static_cast<size_t>(e)][static_cast<size_t>(s)];
+}
+
 void enemy::update(float, float dt)
 {
 	std::vector<std::pair<std::uint32_t, std::uint32_t>> event;
-	for (size_t cidx = 0; cidx < system.dispatch.collision.size(); ++cidx) {
-		const auto coll = system.dispatch.collision[cidx];
-		const auto fsm_idx = index(coll.listen, system_id::enemy) >> type_shift;
-		const auto ev = coll.payload & 1? 1: coll.payload & 2? 2: 0;
-		// const auto trans = transition(fsm.state, ev);
+	for (size_t cidx = 0; cidx < system.dispatch.events.size(); ++cidx) {
+		const auto event = system.dispatch.events[cidx];
+		const auto fsm_idx = index(event.listen, system_id::enemy) >> type_shift;
 		auto &fsm = enemy_[static_cast<size_t>(type_t::dumb0)][fsm_idx];
-		state_t nstate = fsm.state;
-#define TRANS(state, ev) (static_cast<std::uint32_t>(state)*3+(ev))
-		switch (TRANS(fsm.state, ev)) {
-		case TRANS(state_t::idle       , 1): nstate = state_t::combat_idle; break;
-		case TRANS(state_t::idle       , 2): nstate = state_t::move       ; break;
-		case TRANS(state_t::move       , 1): nstate = state_t::combat_idle; break;
-		case TRANS(state_t::combat_idle, 2): nstate = state_t::move       ; break;
-		default: break;
+		auto state = fsm.state;
+		for (size_t ev = 0; ev < static_cast<size_t>(event_t::NUM); ) {
+			if (event.payload & (1u << ev)) {
+				const auto trans = transition(state, static_cast<event_t>(ev));
+				state = trans.next;
+				ev += trans.consumed;
+			} else {
+				++ev;
+			}
 		}
-		fsm.state = nstate;
+		fsm.state = state;
 	}
 
 	auto pl_pos = system.tfms.world(player).pos();
@@ -188,7 +232,7 @@ void enemy::make_enemy(entity e, type_t type)
 	enemy_[type_idx].emplace_back(e, state_t::idle, 0);
 	add_component(e, system_id::enemy);
 	reindex(e, system_id::enemy, idx);
-	system.dispatch.listen_collision(e, e, 0, 4);
+	system.dispatch.listen_collision(e, e, 0, 1u << static_cast<size_t>(event_t::collide_any));
 
 	const auto range =
 		+ 0.5f  // player radius
@@ -199,13 +243,13 @@ void enemy::make_enemy(entity e, type_t type)
 	const auto combat_range = spawn();
 	system.tfms.transformable(combat_range, range, glm::vec2{0.0f, 0.0f}, e);
 	system.phys.collider_circle(combat_range);
-	system.dispatch.listen_collision(e, combat_range, player, 1);
+	system.dispatch.listen_collision(e, combat_range, player, 1u << static_cast<size_t>(event_t::collide_fight_range));
 	// system.render.drawable(combat_range, render::aggro);
 
 	const auto sight_range = spawn();
 	system.tfms.transformable(sight_range, 3.0f, glm::vec2{0.0f, 0.0f}, e);
 	system.phys.collider_circle(sight_range);
-	system.dispatch.listen_collision(e, sight_range, player, 2);
+	system.dispatch.listen_collision(e, sight_range, player, 1u << static_cast<size_t>(event_t::collide_sight_range));
 	system.render.drawable(sight_range, render::aggro);
 }
 
@@ -237,10 +281,13 @@ void dispatch::fini()
 
 void dispatch::update(float, float)
 {
-	collision.clear();
+	events.clear();
 	// TODO: sort arrays for more efficient access
 	//  O(N2*M) -> O(NlogN + MlogM + max(N,M))
 	//  with N = # colliding and M = # listening
+	//
+	//  FIXME: collisions should be consumed once seen
+	//  and wildcards should be tested last
 	for (size_t i = 0; i < system.phys.colliding.size(); ++i) {
 		const auto cur = system.phys.colliding[i];
 		auto begin = std::cbegin(listening_collision);
@@ -253,15 +300,13 @@ void dispatch::update(float, float)
 		if (find == end)
 			continue;
 
-		auto col_b = std::begin(collision);
-		auto col_e = std::end  (collision);
+		auto col_b = std::begin(events);
+		auto col_e = std::end  (events);
 		auto col_i = std::find_if(col_b, col_e, [=] (auto elem) { return elem.listen == find->listen; });
 		if (col_i == col_e) {
-			collision.emplace_back(find->listen, find->payload);
-			assert(find->listen < 100);
+			events.emplace_back(find->listen, find->payload);
 		} else {
 			col_i->payload |= find->payload;
-			assert(col_i->listen < 100);
 		}
 	}
 }

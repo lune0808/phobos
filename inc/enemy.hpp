@@ -24,8 +24,11 @@ struct enemy {
 		NUM
 	};
 
-	enum class event_t {
+	enum class event_t : std::uint32_t {
 		collide_any,
+		collide_fight_range,
+		collide_sight_range,
+		timeout,
 		NUM
 	};
 
@@ -60,13 +63,13 @@ struct dispatch
 	// with = 0 means test for any collision
 	void listen_collision(entity listen, entity e, entity with, std::uint32_t payload);
 
-	struct event_collision
+	struct event
 	{
 		entity listen;
 		std::uint32_t payload;
 	};
 
-	std::vector<event_collision> collision;
+	std::vector<event> events;
 
 private:
 	struct listening_collision_t {
