@@ -4,17 +4,16 @@
 
 namespace phobos {
 
-// TODO: rename to fsm
-struct enemy {
-	enum class type_t {
-		dumb0,
+struct fsm {
+	enum class type : std::uint32_t {
+		enemy_dumb0,
 		NUM
 	};
 
 	enum : std::uint32_t { type_shift = 1, type_mask = (1<<type_shift) - 1 };
-	static_assert(type_mask >= static_cast<std::uint32_t>(type_t::NUM)-1, "increase type_shift");
+	static_assert(type_mask >= static_cast<std::uint32_t>(type::NUM), "increase type_shift");
 
-	enum class state_t {
+	enum state_t : std::uint32_t {
 		just_spawned,
 		idle,
 		move,
@@ -22,37 +21,38 @@ struct enemy {
 		combat_attack_windup,
 		combat_attack,
 		combat_attack_cooldown,
-		NUM
+		state_num
 	};
 
-	enum class event_t : std::uint32_t {
+	enum event_t : std::uint32_t {
 		collide_any,
 		collide_fight_range,
 		collide_sight_range,
 		timeout,
-		NUM
+		event_num
 	};
 
-	struct enemy_t {
+	struct state_machine
+	{
 		entity id;
 		state_t state;
-		// TODO: slash should be a state machine, and player too
-		enum {
-			slash_hand,
-			slash_cone,
-			slash_speed,
-			slash_trail,
-			fight_range,
-			sight_range,
-			NUM
-		};
-		entity managed[NUM];
 	};
 
-	std::vector<enemy_t> enemy_[static_cast<size_t>(type_t::NUM)];
+	struct enemy_dumb0 : state_machine
+	{
+		entity fight_range;
+		entity sight_range;
+		entity slash_hand;
+		entity slash_cone;
+		entity slash_speed;
+		entity slash_trail;
+	};
+
+	std::vector<enemy_dumb0> fsm_enemy_dumb0;
+
 	entity player;
 
-	void make_enemy(entity e, type_t type);
+	void make_enemy_dumb0(entity e);
 	void make_player(entity e);
 
 	int init();

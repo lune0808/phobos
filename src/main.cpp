@@ -94,7 +94,7 @@ phobos::entity spawn_enemy(phobos::entity player, glm::vec2 pos)
 	ng.tfms.transformable(enemy, quad_transform(pos, {0.5f,0.5f}));
 	ng.render.drawable(enemy, phobos::render::object::enemy);
 	ng.phys.collider_circle(enemy);
-	ng.enemy.make_enemy(enemy, phobos::enemy::type_t::dumb0);
+	ng.fsm.make_enemy_dumb0(enemy);
 	// ng.hp.damageable(enemy, 3.0f);
 	// const auto hp_bar = phobos::spawn();
 	// ng.render.drawable(hp_bar, phobos::render::object::hp_bar);
@@ -111,7 +111,7 @@ int main()
 	ng.render.drawable(player, phobos::render::object::player);
 	ng.tfms.transformable(player, quad_transform({-0.3f,-0.1f}, {1.0f,1.0f}));
 	ng.phys.collider_circle(player);
-	ng.enemy.make_player(player);
+	ng.fsm.make_player(player);
 	phobos::entity attack = 0;
 	const auto e1 = spawn_enemy(player, {+0.6f,+0.2f});
 	const auto e2 = spawn_enemy(player, {+0.9f,-0.5f});

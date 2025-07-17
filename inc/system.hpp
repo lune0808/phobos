@@ -6,7 +6,7 @@
 #include "phys.hpp"
 #include "transform.hpp"
 #include "health.hpp"
-#include "enemy.hpp"
+#include "fsm.hpp"
 #include "input.hpp"
 
 namespace phobos {
@@ -17,7 +17,7 @@ namespace phobos {
 	X(tfms) \
 	X(dispatch) \
 	X(dispatch_timeout) \
-	X(enemy) \
+	X(fsm) \
 	X(phys) \
 	X(deriv) \
 	X(hp) \
