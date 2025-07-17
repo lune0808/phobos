@@ -16,6 +16,7 @@ namespace phobos {
 	X(tick) /* tick decides if entities are live for this frame so it is always first */ \
 	X(tfms) \
 	X(dispatch) \
+	X(dispatch_timeout) \
 	X(enemy) \
 	X(phys) \
 	X(deriv) \

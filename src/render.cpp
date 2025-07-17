@@ -453,7 +453,7 @@ void render::wall(entity e, full_wall_mesh const &mesh)
 
 void render::update(float now, float dt)
 {
-	for (size_t i = 1; i < trails.trailing_.size(); ++i) {
+	for (size_t i = 0; i < trails.trailing_.size(); ++i) {
 		auto &data = trails.trailing_[i];
 		auto ref = system.tfms.world(data.ref);
 		data.buf[data.insert].base = ref.pos();
@@ -486,7 +486,7 @@ void render::update(float now, float dt)
 			const auto end   = std::cend  (system.phys.colliding);
 			const auto red_shift = std::find_if(begin, end, [=] (auto elem) { return elem.main == e | elem.other == e; }) != end? 0.3f: 0.0f;
 			// TODO: this should be a FSM hurt state to avoid searching every collision every time as well as handle the cooldown
-			glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
+			// glUniform1f(glGetUniformLocation(this_draw.shader.id, "unif_red_shift"), red_shift);
 			if (obj == attack_cone) {
 				const float scale = 1e-2 / dt;
 				// (1-A)v+Au to spread the cone over a larger area

@@ -15,13 +15,6 @@ phobos::transform quad_transform(glm::vec2 origin, glm::vec2 dims, phobos::entit
 	return tri_transform(origin, {dims.x,0.0f}, {0.0f,dims.y}, parent);
 }
 
-phobos::entity cooldown(float seconds)
-{
-	const auto cd = phobos::spawn();
-	ng.tick.expire_in(cd, {seconds});
-	return cd;
-}
-
 phobos::entity spawn_slash(phobos::entity player)
 {
 	const glm::vec2 dir{1.0f, 0.0f};
@@ -43,22 +36,22 @@ phobos::entity spawn_slash(phobos::entity player)
 	const float speed = 15.0f;
 
 	ng.tfms.transformable(hand, {{{1.0f,0.0f}, {0.0f,1.0f}, at}, player});
-	ng.tick.expire_in(hand, {lifetime});
+	// ng.tick.expire_in(hand, {lifetime});
 
 	ng.tfms.transformable(cone, {{swing, swing_tail, {0.0f,0.0f}}, hand});
 	ng.render.drawable(cone, phobos::render::object::attack_cone);
 	ng.phys.collider_triangle(cone);
-	ng.tick.expire_in(cone, {lifetime});
+	// ng.tick.expire_in(cone, {lifetime});
 
 	ng.tfms.transformable(cone_speed, {{{0.0f, speed}, {-speed, 0.0f}, {0.0f, 0.0f}}, 0});
 	ng.deriv.deriv_from(cone, cone_speed);
-	ng.tick.expire_in(cone_speed, {lifetime});
+	// ng.tick.expire_in(cone_speed, {lifetime});
 
 	ng.tfms.transformable(trail, {});
 	ng.render.trailable(trail, cone);
-	ng.tick.expire_in(trail, {lifetime});
+	// ng.tick.expire_in(trail, {lifetime});
 
-	return cooldown(0.5f);
+	return 0;
 }
 
 void win_control(window &win)

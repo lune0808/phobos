@@ -16,7 +16,9 @@ public:
 	void update(float now, float dt);
 	void remove(entity e);
 
-	void expire_in(entity e, expire_in_t data);
+	void wait(entity listen, float seconds);
+
+	std::vector<entity> timeout;
 };
 
 } // phobos

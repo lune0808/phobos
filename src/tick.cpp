@@ -5,10 +5,9 @@
 
 namespace phobos {
 
-void tick::expire_in(entity e, expire_in_t data)
+void tick::wait(entity e, float seconds)
 {
-	data.id = e;
-	expiring_.emplace_back(data);
+	expiring_.emplace_back(seconds, e);
 	add_component(e, system_id::tick);
 	reindex(e, system_id::tick, expiring_.size()-1);
 }
@@ -24,10 +23,14 @@ void tick::fini()
 
 void tick::update(float, float dt)
 {
+	timeout.clear();
 	for (auto &data : expiring_) {
 		if ((data.remaining -= dt) <= 0.0f) {
-			despawn(data.id);
+			timeout.emplace_back(data.id);
 		}
+	}
+	for (auto e : timeout) {
+		remove(e);
 	}
 }
 

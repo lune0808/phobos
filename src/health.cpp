@@ -24,8 +24,8 @@ void hp::update(float, float)
 		// FIXME: this should come from the colliding entity
 		hp.current -= 1.0f;
 		if (hp.current > 0.0f) {
-			hp.cooldown = spawn();
-			system.tick.expire_in(hp.cooldown, {0.5f});
+			// hp.cooldown = spawn();
+			// system.tick.expire_in(hp.cooldown, {0.5f});
 			continue;
 		}
 		despawn(e);

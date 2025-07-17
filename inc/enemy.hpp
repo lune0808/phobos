@@ -15,6 +15,7 @@ struct enemy {
 	static_assert(type_mask >= static_cast<std::uint32_t>(type_t::NUM)-1, "increase type_shift");
 
 	enum class state_t {
+		just_spawned,
 		idle,
 		move,
 		combat_idle,
@@ -35,7 +36,17 @@ struct enemy {
 	struct enemy_t {
 		entity id;
 		state_t state;
-		entity slash_speed;
+		// TODO: slash should be a state machine, and player too
+		enum {
+			slash_hand,
+			slash_cone,
+			slash_speed,
+			slash_trail,
+			fight_range,
+			sight_range,
+			NUM
+		};
+		entity managed[NUM];
 	};
 
 	std::vector<enemy_t> enemy_[static_cast<size_t>(type_t::NUM)];
@@ -80,6 +91,22 @@ private:
 	};
 
 	std::vector<listening_collision_t> listening_collision;
+};
+
+struct dispatch_timeout
+{
+	int init();
+	void fini();
+	void update(float, float);
+	void remove(entity);
+
+	void listen(entity listen);
+
+	struct listening_time_t {
+		entity listen;
+	};
+
+	std::vector<listening_time_t> listening_time;
 };
 
 } // phobos
