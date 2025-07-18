@@ -13,11 +13,12 @@ namespace phobos {
 
 #define PHOBOS_SYSTEMS(X) \
 	X(input) \
-	X(tick) /* tick decides if entities are live for this frame so it is always first */ \
+	X(tick) \
 	X(tfms) \
 	X(dispatch) \
 	X(dispatch_timeout) \
 	X(fsm) \
+	X(dispatch_death) \
 	X(phys) \
 	X(deriv) \
 	X(hp) \

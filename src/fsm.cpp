@@ -7,14 +7,31 @@ namespace phobos {
 
 int fsm::init()
 {
+	fsms[enemy_dumb0].enemy_dumb0.init();
+	fsms[slash      ].slash      .init();
 	return 0;
 }
 
 void fsm::fini()
 {
+	fsms[enemy_dumb0].enemy_dumb0.fini();
+	fsms[slash      ].slash      .fini();
 }
 
-static void spawn_slash(glm::vec2 dir, entity en, fsm::enemy_dumb0 &data)
+void fsm::make_slash(entity e, entity cone, entity speed, entity trail)
+{
+	slash_t repr{
+		{ e, fsm::just_spawned },
+		cone, speed, trail,
+	};
+	fsms[slash].slash.push_back(repr);
+	add_component(e, system_id::fsm);
+	const auto type_idx = type::slash;
+	const auto idx = type_idx | fsms[slash].slash.size()-1 << type_shift;
+	reindex(e, system_id::fsm, idx);
+}
+
+static entity spawn_slash(glm::vec2 dir, entity from)
 {
 	const auto at = 0.51f * dir;
 	const auto angle = glm::radians(-90.0f);
@@ -34,7 +51,7 @@ static void spawn_slash(glm::vec2 dir, entity en, fsm::enemy_dumb0 &data)
 	const glm::vec2 y{0.0f, 1.0f};
 
 	const auto hand = spawn();
-	system.tfms.transformable(hand, {{x, y, at}, en});
+	system.tfms.transformable(hand, {{x, y, at}, from});
 	const auto cone = spawn();
 	system.render.drawable(cone, render::attack_cone);
 	system.tfms.transformable(cone, {{swing, swing_tail, zero}, hand});
@@ -46,10 +63,10 @@ static void spawn_slash(glm::vec2 dir, entity en, fsm::enemy_dumb0 &data)
 	system.tfms.transformable(trail, {});
 	system.render.trailable(trail, cone);
 
-	data.slash_hand  = hand ;
-	data.slash_cone  = cone ;
-	data.slash_speed = cone_speed;
-	data.slash_trail = trail;
+	system.fsm.make_slash(hand, cone, cone_speed, trail);
+	system.dispatch_timeout.listen(hand);
+	system.tick.wait(hand, 0.2f);
+	return hand;
 }
 
 static bool bit_test(std::uint32_t mask, std::uint32_t bit)
@@ -57,7 +74,7 @@ static bool bit_test(std::uint32_t mask, std::uint32_t bit)
 	return mask & (1u << bit);
 }
 
-static void transition(fsm::enemy_dumb0 &sm, std::uint32_t ev_mask, glm::vec2 pl_pos)
+static void transition(fsm::enemy_dumb0_t &sm, std::uint32_t ev_mask, glm::vec2 pl_pos)
 {
 next:   switch (sm.state) {
 	case fsm::just_spawned:
@@ -86,36 +103,19 @@ next:   switch (sm.state) {
 			sm.state = fsm::move;
 			goto next;
 		} else {
-			sm.state = fsm::combat_attack_windup;
+			sm.state = fsm::combat_attack;
 			const auto en_pos = system.tfms.world(sm.id).pos();
 			const auto diff = pl_pos - en_pos;
-			spawn_slash(glm::normalize(diff), sm.id, sm);
-			system.tick.wait(sm.id, 0.2f);
-		}
-		break;
-	case fsm::combat_attack_windup:
-		if (bit_test(ev_mask, fsm::timeout)) {
-			sm.state = fsm::combat_attack;
-			const auto speed = 7.0f;
-			const auto tfm = system.tfms.referential(sm.slash_speed);
-			assert(tfm);
-			tfm->x().y = speed;
-			tfm->y().x = -speed;
-			system.tick.wait(sm.id, 0.8f);
+			const auto slash = spawn_slash(glm::normalize(diff), sm.id);
+			system.dispatch_death.listen(sm.id, slash);
 		}
 		break;
 	case fsm::combat_attack:
-		if (bit_test(ev_mask, fsm::timeout)) {
+		if (bit_test(ev_mask, fsm::die)) {
 			sm.state = fsm::combat_attack_cooldown;
-			despawn(sm.slash_hand );
-			sm.slash_hand  = 0;
-			despawn(sm.slash_cone );
-			sm.slash_cone  = 0;
-			despawn(sm.slash_speed);
-			sm.slash_speed = 0;
-			despawn(sm.slash_trail);
-			sm.slash_trail = 0;
+			system.dispatch_death.remove(sm.id);
 			system.tick.wait(sm.id, 0.5f);
+			sm.slash = 0;
 		}
 		break;
 	case fsm::combat_attack_cooldown:
@@ -128,17 +128,50 @@ next:   switch (sm.state) {
 	}
 }
 
+static void transition(fsm::slash_t &sm, std::uint32_t ev_mask)
+{
+	switch (sm.state) {
+	case fsm::just_spawned:
+		if (bit_test(ev_mask, fsm::timeout)) {
+			sm.state = fsm::idle;
+			const auto speed = 7.0f;
+			const auto tfm = system.tfms.referential(sm.speed);
+			assert(tfm);
+			tfm->x().y = speed;
+			tfm->y().x = -speed;
+			system.tick.wait(sm.id, 0.8f);
+		}
+		break;
+	case fsm::idle:
+		if (bit_test(ev_mask, fsm::timeout)) {
+			despawn(sm.id);
+		}
+		break;
+	default: assert(false);
+	}
+}
+
 void fsm::update(float, float dt)
 {
 	const auto pl_pos = system.tfms.world(player).pos();
+	// TODO: sort events somehow to avoid the switch
 	for (size_t cidx = 0; cidx < system.dispatch.events.size(); ++cidx) {
 		const auto event = system.dispatch.events[cidx];
-		const auto fsm_idx = index(event.listen, system_id::fsm) >> type_shift;
-		auto &fsm = fsm_enemy_dumb0[fsm_idx];
-		transition(fsm, event.payload, pl_pos);
+		const auto idx = index(event.listen, system_id::fsm);
+		const auto fsm_idx = idx >> type_shift;
+		const auto type_idx = idx & type_mask;
+		auto &fsms = this->fsms[type_idx];
+		switch (type_idx) {
+		case enemy_dumb0:
+			transition(fsms.enemy_dumb0[fsm_idx], event.payload, pl_pos);
+			break;
+		case slash:
+			transition(fsms.slash[fsm_idx], event.payload);
+			break;
+		}
 	}
 
-	for (const auto &e : fsm_enemy_dumb0) {
+	for (const auto &e : fsms[enemy_dumb0].enemy_dumb0) {
 		if (e.state == fsm::move) {
 			const auto en_pos = system.tfms.world(e.id).pos();
 			const auto diff = pl_pos - en_pos;
@@ -151,15 +184,14 @@ void fsm::update(float, float dt)
 void fsm::make_enemy_dumb0(entity e)
 {
 	const std::uint32_t type_idx = static_cast<std::uint32_t>(type::enemy_dumb0);
-	const std::uint32_t idx = type_idx | fsm_enemy_dumb0.size() << type_shift;
+	const std::uint32_t idx = type_idx | fsms[enemy_dumb0].enemy_dumb0.size() << type_shift;
 	const auto fight_range = spawn();
 	const auto sight_range = spawn();
-	enemy_dumb0 repr{
+	enemy_dumb0_t repr{
 		{ e, fsm::just_spawned },
-		fight_range, sight_range,
-		0, 0, 0, 0,
+		fight_range, sight_range, 0,
 	};
-	fsm_enemy_dumb0.emplace_back(repr);
+	fsms[enemy_dumb0].enemy_dumb0.push_back(repr);
 	add_component(e, system_id::fsm);
 	reindex(e, system_id::fsm, idx);
 	system.dispatch_timeout.listen(e);
@@ -194,12 +226,31 @@ void fsm::remove(entity e)
 {
 	const std::uint32_t idx = index(e, system_id::fsm);
 	const std::uint32_t type_idx = idx & type_mask;
-	const std::uint32_t swapped_idx = fsm_enemy_dumb0.size()-1;
 	const std::uint32_t removed_idx = idx >> type_shift;
-	fsm_enemy_dumb0[removed_idx] = fsm_enemy_dumb0[swapped_idx];
-	reindex(fsm_enemy_dumb0[removed_idx].id, system_id::fsm, idx);
+	auto &fsms = this->fsms[type_idx];
+	switch (type_idx) {
+		std::uint32_t swapped_idx;
+	case enemy_dumb0:
+		despawn(fsms.enemy_dumb0[removed_idx].fight_range);
+		despawn(fsms.enemy_dumb0[removed_idx].sight_range);
+		despawn(fsms.enemy_dumb0[removed_idx].slash      );
+		swapped_idx = fsms.enemy_dumb0.size()-1;
+		fsms.enemy_dumb0[removed_idx] = fsms.enemy_dumb0[swapped_idx];
+		reindex(fsms.enemy_dumb0[removed_idx].id, system_id::fsm, idx);
+		fsms.enemy_dumb0.pop_back();
+		break;
+	case slash:
+		despawn(fsms.slash[removed_idx].cone );
+		despawn(fsms.slash[removed_idx].speed);
+		despawn(fsms.slash[removed_idx].trail);
+		swapped_idx = fsms.slash.size()-1;
+		fsms.slash[removed_idx] = fsms.slash[swapped_idx];
+		reindex(fsms.slash[removed_idx].id, system_id::fsm, idx);
+		fsms.slash.pop_back();
+		break;
+	default: assert(0);
+	}
 	del_component(e, system_id::fsm);
-	fsm_enemy_dumb0.pop_back();
 }
 
 int dispatch::init()
@@ -213,7 +264,6 @@ void dispatch::fini()
 
 void dispatch::update(float, float)
 {
-	events.clear();
 	// TODO: sort arrays for more efficient access
 	//  O(N2*M) -> O(NlogN + MlogM + max(N,M))
 	//  with N = # colliding and M = # listening
@@ -306,6 +356,54 @@ void dispatch_timeout::listen(entity listen)
 	listening_time.emplace_back(listen);
 	add_component(listen, system_id::dispatch_timeout);
 	reindex(listen, system_id::dispatch_timeout, listening_time.size()-1);
+}
+
+int dispatch_death::init()
+{
+	return 0;
+}
+
+void dispatch_death::fini()
+{
+}
+
+void dispatch_death::update(float, float)
+{
+	system.dispatch.events.clear();
+	for (const auto e : dead_this_tick()) {
+		const auto begin = std::cbegin(listening_death);
+		const auto end   = std::cend  (listening_death);
+		const auto find = std::find_if(begin, end, [=] (auto elem) { return elem.to == e; });
+		if (find == end)
+			continue;
+
+		const auto col_b = std::begin(system.dispatch.events);
+		const auto col_e = std::end  (system.dispatch.events);
+		const auto col_i = std::find_if(col_b, col_e, [=] (auto elem) { return elem.listen == find->listen; });
+		const std::uint32_t find_payload = 1u << fsm::die;
+		if (col_i == col_e) {
+			system.dispatch.events.emplace_back(find->listen, find_payload);
+		} else {
+			col_i->payload |= find_payload;
+		}
+	}
+}
+
+void dispatch_death::remove(entity e)
+{
+	const std::uint32_t idx = index(e, system_id::dispatch_death);
+	const std::uint32_t swapped_idx = listening_death.size()-1;
+	listening_death[idx] = listening_death[swapped_idx];
+	reindex(listening_death[idx].listen, system_id::dispatch_death, idx);
+	del_component(e, system_id::dispatch_death);
+	listening_death.pop_back();
+}
+
+void dispatch_death::listen(entity listen, entity to)
+{
+	listening_death.emplace_back(listen, to);
+	add_component(listen, system_id::dispatch_death);
+	reindex(listen, system_id::dispatch_death, listening_death.size()-1);
 }
 
 } // phobos

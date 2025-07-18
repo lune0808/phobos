@@ -9,5 +9,7 @@ entity spawn();
 void despawn(entity);
 void update();
 
+const std::vector<entity> &dead_this_tick();
+
 } // phobos
 

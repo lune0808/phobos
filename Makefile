@@ -1,10 +1,11 @@
 DIR = $(shell find inc -type d)
 BINDIR = $(DIR:inc%=bin%)
 LIBS = glfw3 gl
-CPPFLAGS = -MMD -MP -fpch-deps -Ibin -Iinc $(shell pkg-config --cflags $(LIBS)) -DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_XYZW_ONLY
-CFLAGS =
-CXXFLAGS = -std=c++23 -ggdb3
-LDFLAGS = $(shell pkg-config --libs $(LIBS))
+SAN = -fsanitize=address
+CPPFLAGS = -MMD -MP -fpch-deps -Ibin -Iinc $(shell pkg-config --cflags $(LIBS)) -DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_XYZW_ONLY $(SAN)
+CFLAGS = $(SAN)
+CXXFLAGS = -std=c++23 -ggdb3 $(SAN)
+LDFLAGS = $(shell pkg-config --libs $(LIBS)) $(SAN)
 
 CC = gcc-14
 CXX = g++-14
